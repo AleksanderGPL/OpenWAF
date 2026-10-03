@@ -7,9 +7,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	"OpenWAF/internal/api"
 	"OpenWAF/internal/auth"
 	"OpenWAF/internal/database"
-	"OpenWAF/internal/proxy"
+	"OpenWAF/internal/services"
 	"github.com/gofiber/fiber/v3"
 )
 
@@ -21,15 +22,14 @@ func testAPI(t *testing.T) *fiber.App {
 	}
 	sqlDB, _ := db.DB()
 	t.Cleanup(func() { sqlDB.Close() })
-	authService, err := auth.New(db, false)
+	store := database.NewStore(db)
+	authService, err := auth.New(store)
 	if err != nil {
 		t.Fatal(err)
 	}
-	proxyService := proxy.New(db)
-	t.Cleanup(proxyService.Close)
-	app := fiber.New(fiber.Config{ErrorHandler: auth.ErrorHandler})
+	app := fiber.New(fiber.Config{ErrorHandler: api.ErrorHandler})
 	t.Cleanup(func() { app.Shutdown() })
-	if err := registerAPI(app, authService, proxyService); err != nil {
+	if err := registerAPI(app, auth.NewHandler(authService, false), services.NewHandler(services.New(store))); err != nil {
 		t.Fatal(err)
 	}
 	serveFrontend(app)

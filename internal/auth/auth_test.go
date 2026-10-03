@@ -12,6 +12,7 @@ import (
 
 	"OpenWAF/internal/api"
 	"OpenWAF/internal/database"
+	"OpenWAF/internal/domain"
 	"github.com/gofiber/fiber/v3"
 	"gorm.io/gorm"
 )
@@ -41,13 +42,14 @@ func setupEmpty(t *testing.T, secure bool) fixture {
 
 func appForDatabase(t *testing.T, db *gorm.DB, secure bool) *fiber.App {
 	t.Helper()
-	service, err := New(db, secure)
+	service, err := New(database.NewStore(db))
 	if err != nil {
 		t.Fatal(err)
 	}
-	app := fiber.New(fiber.Config{ErrorHandler: ErrorHandler})
-	service.Register(api.New(app).Group("/api"))
-	app.Get("/api/stats", service.RequireAuth, func(c fiber.Ctx) error { return c.SendStatus(200) })
+	handler := NewHandler(service, secure)
+	app := fiber.New(fiber.Config{ErrorHandler: api.ErrorHandler})
+	handler.Register(api.New(app).Group("/api"))
+	app.Get("/api/stats", handler.RequireAuth, func(c fiber.Ctx) error { return c.SendStatus(200) })
 	t.Cleanup(func() { app.Shutdown() })
 	return app
 }
@@ -111,7 +113,7 @@ func TestSessionLifecycle(t *testing.T) {
 	if len(session.Value) != 64 || !session.HttpOnly || !session.Secure || session.SameSite != http.SameSiteStrictMode || session.Path != "/" || session.MaxAge != 2592000 {
 		t.Fatalf("unexpected session cookie: %+v", session)
 	}
-	var stored database.UserSession
+	var stored domain.UserSession
 	if err := f.db.First(&stored).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +136,7 @@ func TestSessionLifecycle(t *testing.T) {
 	request(t, f.app, "GET", "/api/auth", "", 401, session)
 	request(t, f.app, "POST", "/api/auth/sign-out", "", 204)
 	session = login(t, f.app)
-	if err := f.db.Model(&database.UserSession{}).Where("token_hash = ?", tokenHash(session.Value)).Update("expires_at", time.Now().UTC().Add(-time.Second)).Error; err != nil {
+	if err := f.db.Model(&domain.UserSession{}).Where("token_hash = ?", tokenHash(session.Value)).Update("expires_at", time.Now().UTC().Add(-time.Second)).Error; err != nil {
 		t.Fatal(err)
 	}
 	request(t, f.app, "GET", "/api/auth", "", 401, session)
@@ -142,9 +144,9 @@ func TestSessionLifecycle(t *testing.T) {
 
 func TestSessionReplacementAndUserDeletion(t *testing.T) {
 	f := setup(t, false)
-	var admin database.User
+	var admin domain.User
 	f.db.First(&admin)
-	user := database.User{Username: "user", Name: "User", PasswordHash: admin.PasswordHash, Role: "user"}
+	user := domain.User{Username: "user", Name: "User", PasswordHash: admin.PasswordHash, Role: "user"}
 	if err := f.db.Create(&user).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -166,7 +168,7 @@ func TestSessionReplacementAndUserDeletion(t *testing.T) {
 	}
 	request(t, f.app, "GET", "/api/auth", "", 401, userSession)
 	var count int64
-	f.db.Model(&database.UserSession{}).Where("user_id = ?", user.ID).Count(&count)
+	f.db.Model(&domain.UserSession{}).Where("user_id = ?", user.ID).Count(&count)
 	if count != 0 {
 		t.Fatal("user deletion did not cascade to sessions")
 	}
@@ -186,9 +188,9 @@ func TestSetupPersistence(t *testing.T) {
 	request(t, app, "POST", "/api/auth/setup", `{"username":"admin","password":"short"}`, 400)
 	request(t, app, "POST", "/api/auth/setup", `{"username":"admin","password":"test-password"}`, 201)
 	session := login(t, app)
-	var original database.User
+	var original domain.User
 	db.First(&original)
-	storedSession := database.UserSession{UserID: original.ID, TokenHash: tokenHash("persistent-token"), ExpiresAt: time.Now().UTC().Add(sessionLifetime)}
+	storedSession := domain.UserSession{UserID: original.ID, TokenHash: tokenHash("persistent-token"), ExpiresAt: time.Now().UTC().Add(sessionLifetime)}
 	if err := db.Create(&storedSession).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -207,12 +209,12 @@ func TestSetupPersistence(t *testing.T) {
 	}
 	request(t, app, "POST", "/api/auth/setup", `{"username":"replacement","password":"other-password"}`, 409)
 	request(t, app, "GET", "/api/auth", "", 200, session)
-	var users []database.User
+	var users []domain.User
 	db.Find(&users)
 	if len(users) != 1 || users[0].Username != "admin" || users[0].PasswordHash != original.PasswordHash {
 		t.Fatal("setup replaced an existing account or database did not persist")
 	}
-	var restoredSession database.UserSession
+	var restoredSession domain.UserSession
 	if err := db.Preload("User").First(&restoredSession, storedSession.ID).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -235,7 +237,7 @@ func TestSetupValidation(t *testing.T) {
 		t.Fatalf("invalid requests changed setup status: %s", status)
 	}
 	response, data := request(t, f.app, "POST", "/api/auth/setup", `{"username":" admin ","password":"test-password","role":"user"}`, 201)
-	var user database.User
+	var user domain.User
 	if err := json.Unmarshal([]byte(data), &user); err != nil {
 		t.Fatal(err)
 	}

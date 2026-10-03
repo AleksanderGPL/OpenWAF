@@ -16,6 +16,7 @@ import (
 	"OpenWAF/internal/auth"
 	"OpenWAF/internal/database"
 	"OpenWAF/internal/proxy"
+	"OpenWAF/internal/services"
 
 	"github.com/gofiber/fiber/v3"
 )
@@ -24,27 +25,6 @@ func main() {
 	if err := run(); err != nil {
 		log.Fatal(err)
 	}
-}
-
-type StatsResponse struct {
-	Status string `json:"status" required:"true"`
-	Blocks int    `json:"blocks" required:"true"`
-}
-
-func registerAPI(app *fiber.App, authService *auth.Service, proxyService *proxy.Service) error {
-	routes := api.New(app).Group("/api")
-	authService.Register(routes)
-	proxyService.Register(routes, authService.RequireAuth)
-	routes.Handle(http.MethodGet, "/stats", api.Operation{
-		ID: "getStats", Summary: "Get placeholder WAF statistics", Response: StatsResponse{}, Session: true, Errors: []int{401},
-	}, authService.RequireAuth, func(c fiber.Ctx) error {
-		return c.JSON(StatsResponse{Status: "WAF Active", Blocks: 127})
-	})
-	if err := registerDocs(routes); err != nil {
-		return err
-	}
-	routes.Use(func(c fiber.Ctx) error { return fiber.ErrNotFound })
-	return nil
 }
 
 func run() error {
@@ -68,15 +48,16 @@ func run() error {
 			return errors.New("AUTH_COOKIE_SECURE must be a boolean")
 		}
 	}
-	authService, err := auth.New(db, secure)
+	store := database.NewStore(db)
+	authService, err := auth.New(store)
 	if err != nil {
 		return err
 	}
-	app := fiber.New(fiber.Config{ErrorHandler: auth.ErrorHandler, BodyLimit: 16 * 1024})
+	app := fiber.New(fiber.Config{ErrorHandler: api.ErrorHandler, BodyLimit: 16 * 1024})
 
-	proxyService := proxy.New(db)
+	proxyService := proxy.New(store)
 	defer proxyService.Close()
-	if err := registerAPI(app, authService, proxyService); err != nil {
+	if err := registerAPI(app, auth.NewHandler(authService, secure), services.NewHandler(services.New(store))); err != nil {
 		return err
 	}
 
