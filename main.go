@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"OpenWAF/internal/api"
+	"OpenWAF/internal/assistant"
 	"OpenWAF/internal/auth"
 	"OpenWAF/internal/clientip"
 	"OpenWAF/internal/database"
@@ -31,6 +32,9 @@ func main() {
 }
 
 func run() error {
+	if err := loadEnv(); err != nil {
+		return err
+	}
 	rateLimitKey, err := authRateLimitKey()
 	if err != nil {
 		return err
@@ -67,9 +71,14 @@ func run() error {
 		return err
 	}
 	telemetryService := telemetry.New(store)
+	assistantService, err := assistant.New(context.Background(), db, telemetryService)
+	if err != nil {
+		return err
+	}
+	defer assistantService.Close()
 	proxyService := proxy.New(store, telemetryService, clientIP)
 	defer proxyService.Close()
-	if err := registerAPI(app, auth.NewHandler(authService, secure, rateLimitKey), services.NewHandler(services.New(store)), telemetry.NewHandler(telemetryService)); err != nil {
+	if err := registerAPI(app, auth.NewHandler(authService, secure, rateLimitKey), services.NewHandler(services.New(store)), telemetry.NewHandler(telemetryService), assistant.NewHandler(assistantService)); err != nil {
 		return err
 	}
 
@@ -105,6 +114,7 @@ func run() error {
 	case err = <-serverErrors:
 	case <-ctx.Done():
 	}
+	assistantService.Close()
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	shutdownErrors := make(chan error, 1)
