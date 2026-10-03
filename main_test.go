@@ -29,7 +29,11 @@ func testAPI(t *testing.T) *fiber.App {
 	}
 	app := fiber.New(fiber.Config{ErrorHandler: api.ErrorHandler})
 	t.Cleanup(func() { app.Shutdown() })
-	if err := registerAPI(app, auth.NewHandler(authService, false), services.NewHandler(services.New(store))); err != nil {
+	rateLimitKey, err := authRateLimitKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := registerAPI(app, auth.NewHandler(authService, false, rateLimitKey), services.NewHandler(services.New(store))); err != nil {
 		t.Fatal(err)
 	}
 	serveFrontend(app)

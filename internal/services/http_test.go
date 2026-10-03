@@ -51,7 +51,7 @@ func TestServiceEndpointsAndPersistence(t *testing.T) {
 	app := fiber.New(fiber.Config{ErrorHandler: api.ErrorHandler})
 	t.Cleanup(func() { app.Shutdown() })
 	router := api.New(app).Group("/api")
-	authHandler := auth.NewHandler(authService, false)
+	authHandler := auth.NewHandler(authService, false, nil)
 	authHandler.Register(router)
 	NewHandler(New(database.NewStore(db))).Register(router, authHandler.RequireAuth)
 	for _, method := range []string{"GET", "POST", "PUT", "DELETE"} {

@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -28,6 +29,10 @@ func main() {
 }
 
 func run() error {
+	rateLimitKey, err := authRateLimitKey()
+	if err != nil {
+		return err
+	}
 	path := os.Getenv("DATABASE_PATH")
 	if path == "" {
 		path = "data/openwaf.db"
@@ -57,7 +62,7 @@ func run() error {
 
 	proxyService := proxy.New(store)
 	defer proxyService.Close()
-	if err := registerAPI(app, auth.NewHandler(authService, secure), services.NewHandler(services.New(store))); err != nil {
+	if err := registerAPI(app, auth.NewHandler(authService, secure, rateLimitKey), services.NewHandler(services.New(store))); err != nil {
 		return err
 	}
 
@@ -100,4 +105,16 @@ func run() error {
 		err = nil
 	}
 	return errors.Join(err, proxyShutdownErr, adminShutdownErr)
+}
+
+func authRateLimitKey() (func(fiber.Ctx) string, error) {
+	value, configured := os.LookupEnv("TRUSTED_PROXIES")
+	if !configured {
+		value = "127.0.0.1,::1"
+	}
+	var proxies []string
+	if strings.TrimSpace(value) != "" {
+		proxies = strings.Split(value, ",")
+	}
+	return api.ClientIPKey(proxies)
 }

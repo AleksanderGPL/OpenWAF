@@ -13,14 +13,15 @@ import (
 type Handler struct {
 	service      *Service
 	secureCookie bool
+	rateLimitKey func(fiber.Ctx) string
 }
 
-func NewHandler(service *Service, secureCookie bool) *Handler {
-	return &Handler{service: service, secureCookie: secureCookie}
+func NewHandler(service *Service, secureCookie bool, rateLimitKey func(fiber.Ctx) string) *Handler {
+	return &Handler{service: service, secureCookie: secureCookie, rateLimitKey: rateLimitKey}
 }
 
-func authLimiter() fiber.Handler {
-	return limiter.New(limiter.Config{Max: 10, Expiration: time.Minute,
+func (h *Handler) authLimiter() fiber.Handler {
+	return limiter.New(limiter.Config{Max: 10, Expiration: time.Minute, KeyGenerator: h.rateLimitKey,
 		LimitReached: func(c fiber.Ctx) error { return fiber.ErrTooManyRequests },
 	})
 }
@@ -34,11 +35,11 @@ func (h *Handler) Register(router *api.Router) {
 	auth.Handle(http.MethodPost, "/setup", api.Operation{
 		ID: "completeSetup", Summary: "Register the first admin", Request: SetupRequest{}, Response: domain.User{},
 		Status: 201, Errors: []int{400, 409, 415, 429},
-	}, authLimiter(), h.completeSetup)
+	}, h.authLimiter(), h.completeSetup)
 	auth.Handle(http.MethodPost, "/sign-in", api.Operation{
 		ID: "signIn", Summary: "Sign in", Description: "Sets an HttpOnly session cookie valid for 30 days.",
 		Request: SignInRequest{}, Response: domain.User{}, Errors: []int{400, 401, 415, 429},
-	}, authLimiter(), h.signIn)
+	}, h.authLimiter(), h.signIn)
 	auth.Handle(http.MethodPost, "/sign-out", api.Operation{ID: "signOut", Summary: "Revoke the session and clear its cookie", Status: 204}, h.signOut)
 	auth.Handle(http.MethodGet, "/", api.Operation{ID: "getCurrentUser", Summary: "Get the current user", Response: domain.User{}, Session: true, Errors: []int{401}}, h.RequireAuth, func(c fiber.Ctx) error {
 		return c.JSON(c.Locals("authUser"))

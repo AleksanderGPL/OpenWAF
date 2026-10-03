@@ -46,7 +46,7 @@ func appForDatabase(t *testing.T, db *gorm.DB, secure bool) *fiber.App {
 	if err != nil {
 		t.Fatal(err)
 	}
-	handler := NewHandler(service, secure)
+	handler := NewHandler(service, secure, nil)
 	app := fiber.New(fiber.Config{ErrorHandler: api.ErrorHandler})
 	handler.Register(api.New(app).Group("/api"))
 	app.Get("/api/stats", handler.RequireAuth, func(c fiber.Ctx) error { return c.SendStatus(200) })
