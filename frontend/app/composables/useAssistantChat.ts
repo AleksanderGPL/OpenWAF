@@ -1,8 +1,10 @@
 import type { AgentMessage, AssistantConversation, AssistantEvent, AssistantMessage } from '~/types/assistant'
 import { readAssistantStream } from '../utils/assistantStream'
+import { translateApiMessage } from '../utils/i18n'
 
 export function useAssistantChat() {
   const auth = useAuthStore()
+  const { t } = useI18n()
   const isAdmin = computed(() => auth.user?.role === 'admin')
   const configuration = ref<{ enabled: boolean} | null>(null)
   const conversations = ref<AssistantConversation[]>([])
@@ -24,7 +26,7 @@ export function useAssistantChat() {
   let pollTimer: ReturnType<typeof setTimeout> | undefined
 
   function errorText(cause: unknown) {
-    return auth.authErrorMessage(cause, cause instanceof Error ? cause.message : 'Could not reach the assistant. Please try again.')
+    return auth.authErrorMessage(cause, cause instanceof Error ? cause.message : t('agent.unreachable'))
   }
   function toMessage(message: AssistantMessage): AgentMessage {
     return { id: message.id, role: message.role, parts: [{ type: 'text', text: message.content }], metadata: { status: message.status } }
@@ -93,7 +95,7 @@ export function useAssistantChat() {
     error.value = ''
     try {
       const conversation = await $fetch<AssistantConversation>('/api/assistant/conversations', {
-        method: 'POST', body: { title: 'New conversation' }
+        method: 'POST', body: { title: t('agent.newConversation') }
       })
       if (disposed) return
       clearTimeout(pollTimer)
@@ -151,7 +153,7 @@ export function useAssistantChat() {
     const content = question.trim()
     if (!content || !canSend.value) return
     if (new TextEncoder().encode(content).length > 8000) {
-      error.value = 'Your message must be at most 8000 bytes. Please shorten it.'
+      error.value = t('agent.messageTooLong')
       return
     }
     error.value = ''
@@ -166,7 +168,7 @@ export function useAssistantChat() {
     try {
       if (!id) {
         const conversation = await $fetch<AssistantConversation>('/api/assistant/conversations', {
-          method: 'POST', body: { title: 'Traffic investigation' }, signal: abort.signal
+          method: 'POST', body: { title: t('agent.investigationTitle') }, signal: abort.signal
         })
         if (disposed) return
         id = conversation.id
@@ -193,13 +195,13 @@ export function useAssistantChat() {
           const message = messages.value.find(item => item.id === event.runId)
           if (message) message.parts[0]!.text += event.delta || ''
         } else if (event.type === 'tool_started') {
-          activeTool.value = event.toolName?.replace(/_/g, ' ') || 'workspace data'
+          activeTool.value = event.toolName || 'workspace'
         } else if (event.type === 'tool_finished') {
           activeTool.value = ''
         } else if (event.type === 'run_completed' || event.type === 'run_failed') {
           if (event.message) upsert(event.message)
           if (event.type === 'run_failed' && event.message?.status !== 'cancelled') {
-            error.value = event.message?.status === 'timed_out' ? 'The assistant timed out. Try a narrower question.' : (event.error || 'The assistant could not complete its response.')
+            error.value = event.message?.status === 'timed_out' ? t('agent.timedOut') : (event.error ? translateApiMessage(event.error) : t('agent.incomplete'))
           }
         }
       })

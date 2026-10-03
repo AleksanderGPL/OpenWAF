@@ -65,7 +65,7 @@ async function navigate(section: DashboardSection) {
           <template #right>
             <ULocaleSelect v-model="selectedLocale" :locales="localeOptions" class="w-36" :aria-label="t('settings.language')" />
             <UButton
-              :label="desktop && agentVisible ? 'Hide agent' : 'Ask agent'"
+              :label="desktop && agentVisible ? t('agent.hide') : t('agent.ask')"
               icon="i-lucide-sparkles"
               color="primary"
               variant="soft"

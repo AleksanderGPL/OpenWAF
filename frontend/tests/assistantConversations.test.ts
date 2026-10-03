@@ -3,7 +3,15 @@ import { computed, ref } from 'vue'
 import { useAssistantChat } from '../app/composables/useAssistantChat'
 
 const globals = globalThis as unknown as Record<string, unknown>
-const names = ['ref', 'computed', 'useAuthStore', '$fetch', 'onMounted', 'onBeforeUnmount']
+const names = ['ref', 'computed', 'useAuthStore', '$fetch', 'onMounted', 'onBeforeUnmount', 'useI18n']
+const messages: Record<string, string> = {
+  'agent.newConversation': 'New conversation',
+  'agent.investigationTitle': 'Traffic investigation',
+  'agent.unreachable': 'Could not reach the assistant. Please try again.',
+  'agent.messageTooLong': 'Your message must be at most 8000 bytes. Please shorten it.',
+  'agent.timedOut': 'The assistant timed out. Try a narrower question.',
+  'agent.incomplete': 'The assistant could not complete its response.'
+}
 const original = new Map(names.map(name => [name, globals[name]]))
 let requests: { url: string, options?: { method?: string, body?: unknown } }[]
 let respond: (url: string, options?: { method?: string, body?: unknown }) => unknown
@@ -15,6 +23,7 @@ beforeEach(() => {
   Object.assign(globals, {
     ref, computed,
     useAuthStore: () => ({ user: { role: 'admin' }, authErrorMessage: (_cause: unknown, fallback: string) => fallback }),
+    useI18n: () => ({ t: (key: string) => messages[key] ?? key }),
     onMounted: () => {}, onBeforeUnmount: () => {},
     $fetch: async (url: string, options?: { method?: string, body?: unknown }) => {
       requests.push({ url, options })
