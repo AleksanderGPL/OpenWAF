@@ -24,15 +24,6 @@ async function navigate(section: DashboardSection, label: string) {
           <template #leading>
             <UDashboardSidebarCollapse />
           </template>
-          <template #right>
-            <UBadge
-              label="Mock data"
-              icon="i-lucide-flask-conical"
-              color="primary"
-              variant="soft"
-            />
-            <USeparator orientation="vertical" class="hidden h-5 sm:block" />
-          </template>
         </UDashboardNavbar>
       </template>
       <template #body>

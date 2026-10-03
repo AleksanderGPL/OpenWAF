@@ -41,17 +41,7 @@ function refresh() {
 <template>
   <main id="overview" class="mx-auto flex w-full max-w-7xl flex-col gap-6">
     <div class="flex flex-wrap items-center justify-between gap-4">
-      <div>
-        <p class="mb-2 text-xs font-medium tracking-widest text-dimmed">
-          YOUR SECURITY, AT A GLANCE
-        </p>
-        <h1 class="text-3xl font-semibold tracking-tight text-highlighted">
-          Overview<span class="text-primary">.</span>
-        </h1>
-        <p class="mt-2 text-sm text-muted">
-          A clear view of your traffic and the threats we stop along the way.
-        </p>
-      </div>
+      
       <div class="flex items-center gap-2">
         <USelect
           v-model="range"
@@ -72,13 +62,6 @@ function refresh() {
         </UTooltip>
       </div>
     </div>
-    <UAlert
-      title="Looking good. Your applications are protected."
-      description="No critical incidents in this mock snapshot."
-      icon="i-lucide-shield-check"
-      color="success"
-      variant="subtle"
-    />
     <DashboardMetrics :metrics="metrics" />
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
       <DashboardTrafficChart :range="range" :total-requests="totalRequests" :total-blocked="totalBlocked" />

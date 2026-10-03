@@ -108,26 +108,6 @@ function showHelp() {
         class="w-full"
       />
       <div class="mt-auto flex flex-col gap-3 pt-8">
-        <UCard v-if="!collapsed" variant="subtle" :ui="{ body: 'p-4 sm:p-4' }">
-          <UIcon name="i-lucide-shield-check" class="mb-3 size-6 text-primary" />
-          <p class="text-sm font-semibold text-highlighted">
-            Your edge is protected
-          </p>
-          <p class="mt-2 text-xs leading-relaxed text-muted">
-            Threats stopped. Traffic flowing.
-            <br>
-            </br>
-            A little peace of mind.
-          </p>
-          <UBadge
-            label="All systems operational"
-            icon="i-lucide-circle-check"
-            color="success"
-            variant="subtle"
-            size="sm"
-            class="mt-4"
-          />
-        </UCard>
         <UButton
           icon="i-lucide-circle-help"
           :label="collapsed ? undefined : 'Dashboard help'"
