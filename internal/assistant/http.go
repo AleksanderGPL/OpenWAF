@@ -35,8 +35,7 @@ type messageList struct {
 	Items []domain.AssistantMessage `json:"items" required:"true"`
 }
 type statusResponse struct {
-	Enabled bool   `json:"enabled" required:"true"`
-	Model   string `json:"model" required:"true"`
+	Enabled bool `json:"enabled" required:"true"`
 }
 type acknowledgement struct {
 	Success bool `json:"success" required:"true"`
@@ -61,7 +60,7 @@ func (h *Handler) Register(router *api.Router, requireAuth fiber.Handler) {
 }
 func userID(c fiber.Ctx) uint { return c.Locals("authUser").(domain.User).ID }
 func (h *Handler) status(c fiber.Ctx) error {
-	return c.JSON(statusResponse{Enabled: h.service.runner != nil, Model: h.service.model})
+	return c.JSON(statusResponse{Enabled: h.service.runner != nil})
 }
 func (h *Handler) create(c fiber.Ctx) error {
 	var input createRequest
