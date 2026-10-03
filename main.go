@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"OpenWAF/internal/auth"
 	"OpenWAF/internal/database"
 	"OpenWAF/internal/proxy"
+	"OpenWAF/internal/services"
 
 	"github.com/gofiber/fiber/v3"
 )
@@ -26,28 +28,11 @@ func main() {
 	}
 }
 
-type StatsResponse struct {
-	Status string `json:"status" required:"true"`
-	Blocks int    `json:"blocks" required:"true"`
-}
-
-func registerAPI(app *fiber.App, authService *auth.Service, proxyService *proxy.Service) error {
-	routes := api.New(app).Group("/api")
-	authService.Register(routes)
-	proxyService.Register(routes, authService.RequireAuth)
-	routes.Handle(http.MethodGet, "/stats", api.Operation{
-		ID: "getStats", Summary: "Get placeholder WAF statistics", Response: StatsResponse{}, Session: true, Errors: []int{401},
-	}, authService.RequireAuth, func(c fiber.Ctx) error {
-		return c.JSON(StatsResponse{Status: "WAF Active", Blocks: 127})
-	})
-	if err := registerDocs(routes); err != nil {
+func run() error {
+	rateLimitKey, err := authRateLimitKey()
+	if err != nil {
 		return err
 	}
-	routes.Use(func(c fiber.Ctx) error { return fiber.ErrNotFound })
-	return nil
-}
-
-func run() error {
 	path := os.Getenv("DATABASE_PATH")
 	if path == "" {
 		path = "data/openwaf.db"
@@ -68,15 +53,16 @@ func run() error {
 			return errors.New("AUTH_COOKIE_SECURE must be a boolean")
 		}
 	}
-	authService, err := auth.New(db, secure)
+	store := database.NewStore(db)
+	authService, err := auth.New(store)
 	if err != nil {
 		return err
 	}
-	app := fiber.New(fiber.Config{ErrorHandler: auth.ErrorHandler, BodyLimit: 16 * 1024})
+	app := fiber.New(fiber.Config{ErrorHandler: api.ErrorHandler, BodyLimit: 16 * 1024})
 
-	proxyService := proxy.New(db)
+	proxyService := proxy.New(store)
 	defer proxyService.Close()
-	if err := registerAPI(app, authService, proxyService); err != nil {
+	if err := registerAPI(app, auth.NewHandler(authService, secure, rateLimitKey), services.NewHandler(services.New(store))); err != nil {
 		return err
 	}
 
@@ -119,4 +105,16 @@ func run() error {
 		err = nil
 	}
 	return errors.Join(err, proxyShutdownErr, adminShutdownErr)
+}
+
+func authRateLimitKey() (func(fiber.Ctx) string, error) {
+	value, configured := os.LookupEnv("TRUSTED_PROXIES")
+	if !configured {
+		value = "127.0.0.1,::1"
+	}
+	var proxies []string
+	if strings.TrimSpace(value) != "" {
+		proxies = strings.Split(value, ",")
+	}
+	return api.ClientIPKey(proxies)
 }

@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -14,10 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"OpenWAF/internal/api"
-	"OpenWAF/internal/auth"
 	"OpenWAF/internal/database"
-	"github.com/gofiber/fiber/v3"
+	"OpenWAF/internal/domain"
 	"gorm.io/gorm"
 )
 
@@ -27,7 +24,7 @@ func testService(t *testing.T) (*Service, *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s := New(db)
+	s := New(database.NewStore(db))
 	t.Cleanup(func() {
 		s.Close()
 		sqlDB, _ := db.DB()
@@ -36,9 +33,9 @@ func testService(t *testing.T) (*Service, *gorm.DB) {
 	return s, db
 }
 
-func saveService(t *testing.T, db *gorm.DB, target string) database.Service {
+func saveService(t *testing.T, db *gorm.DB, target string) domain.Service {
 	t.Helper()
-	service := database.Service{Name: "Example", Hostname: "example.test", UpstreamURL: target, Enabled: true}
+	service := domain.Service{Name: "Example", Hostname: "example.test", UpstreamURL: target, Enabled: true}
 	if err := db.Create(&service).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -157,7 +154,7 @@ func TestUpstreamTLSVerification(t *testing.T) {
 	if w := proxyRequest(s, "GET", "/", ""); w.Code != 502 {
 		t.Fatalf("verification change ignored: %d", w.Code)
 	}
-	trusted := New(db)
+	trusted := New(database.NewStore(db))
 	defer trusted.Close()
 	trusted.verified.TLSClientConfig = upstream.Client().Transport.(*http.Transport).TLSClientConfig.Clone()
 	if w := proxyRequest(trusted, "GET", "/", ""); w.Code != 200 {
@@ -203,125 +200,4 @@ func TestProtocolUpgrade(t *testing.T) {
 	if line, err := reader.ReadString('\n'); err != nil || line != "ping\n" {
 		t.Fatalf("upgrade stream failed: %q %v", line, err)
 	}
-}
-
-func apiRequest(t *testing.T, app *fiber.App, method, path, body string, status int, cookies ...*http.Cookie) (*http.Response, []byte) {
-	t.Helper()
-	r := httptest.NewRequest(method, path, strings.NewReader(body))
-	r.Header.Set("Content-Type", "application/json")
-	for _, cookie := range cookies {
-		r.AddCookie(cookie)
-	}
-	response, err := app.Test(r, fiber.TestConfig{Timeout: 10 * time.Second})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer response.Body.Close()
-	data, err := io.ReadAll(response.Body)
-	if err != nil || response.StatusCode != status {
-		t.Fatalf("%s %s: got %d want %d: %s (%v)", method, path, response.StatusCode, status, data, err)
-	}
-	return response, data
-}
-
-func TestServiceEndpointsAndPersistence(t *testing.T) {
-	s, db := testService(t)
-	authService, err := auth.New(db, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	app := fiber.New(fiber.Config{ErrorHandler: auth.ErrorHandler})
-	t.Cleanup(func() { app.Shutdown() })
-	router := api.New(app).Group("/api")
-	authService.Register(router)
-	s.Register(router, authService.RequireAuth)
-	for _, method := range []string{"GET", "POST", "PUT", "DELETE"} {
-		path := "/api/services"
-		if method == "PUT" || method == "DELETE" {
-			path += "/1"
-		}
-		apiRequest(t, app, method, path, "", 401)
-	}
-	apiRequest(t, app, "POST", "/api/auth/setup", `{"username":"admin","password":"test-password"}`, 201)
-	response, _ := apiRequest(t, app, "POST", "/api/auth/sign-in", `{"username":"admin","password":"test-password"}`, 200)
-	adminCookie := response.Cookies()[0]
-	var admin database.User
-	if err := db.First(&admin).Error; err != nil {
-		t.Fatal(err)
-	}
-	user := database.User{Username: "user", Name: "User", Role: "user", PasswordHash: admin.PasswordHash}
-	if err := db.Create(&user).Error; err != nil {
-		t.Fatal(err)
-	}
-	response, _ = apiRequest(t, app, "POST", "/api/auth/sign-in", `{"username":"user","password":"test-password"}`, 200)
-	for _, method := range []string{"GET", "POST", "PUT", "DELETE"} {
-		path := "/api/services"
-		if method == "PUT" || method == "DELETE" {
-			path += "/1"
-		}
-		apiRequest(t, app, method, path, "", 403, response.Cookies()[0])
-	}
-	_, data := apiRequest(t, app, "GET", "/api/services", "", 200, adminCookie)
-	if string(data) != "[]" {
-		t.Fatalf("empty list: %s", data)
-	}
-	for _, body := range []string{
-		`{`, `null`, `{}`, `{"name":"x","hostname":"bad:80","upstreamUrl":"http://127.0.0.1"}`,
-		`{"name":"x","hostname":"example.test","upstreamUrl":"ftp://127.0.0.1"}`,
-		`{"name":"x","hostname":"example.test","upstreamUrl":"http://127.0.0.1:70000"}`,
-		`{"name":"x","hostname":"example.test","upstreamUrl":"http://user:pass@127.0.0.1"}`,
-		`{"name":"x","hostname":"example.test","upstreamUrl":"http://127.0.0.1/path"}`,
-		`{"name":"x","hostname":"example.test","upstreamUrl":"http://127.0.0.1?x=y"}`,
-	} {
-		apiRequest(t, app, "POST", "/api/services", body, 400, adminCookie)
-	}
-	body := `{"name":" Example ","hostname":" EXAMPLE.TEST. ","upstreamUrl":"https://127.0.0.1:8443","skipTlsVerify":true}`
-	_, data = apiRequest(t, app, "POST", "/api/services", body, 201, adminCookie)
-	var created database.Service
-	if err := json.Unmarshal(data, &created); err != nil {
-		t.Fatal(err)
-	}
-	if created.ID == 0 || created.Name != "Example" || created.Hostname != "example.test" || !created.Enabled || !created.SkipTLSVerify {
-		t.Fatalf("unexpected service: %+v", created)
-	}
-	apiRequest(t, app, "POST", "/api/services", body, 409, adminCookie)
-	path := fmt.Sprintf("/api/services/%d", created.ID)
-	apiRequest(t, app, "GET", path, "", 200, adminCookie)
-	apiRequest(t, app, "GET", "/api/services/0", "", 400, adminCookie)
-	apiRequest(t, app, "GET", "/api/services/999", "", 404, adminCookie)
-	body = `{"name":"Changed","hostname":"other.test","upstreamUrl":"http://127.0.0.1:9000","skipTlsVerify":false,"enabled":false}`
-	_, data = apiRequest(t, app, "PUT", path, body, 200, adminCookie)
-	var updated database.Service
-	if err := json.Unmarshal(data, &updated); err != nil {
-		t.Fatal(err)
-	}
-	if updated.Enabled || updated.SkipTLSVerify || updated.Hostname != "other.test" || updated.CreatedAt != created.CreatedAt {
-		t.Fatalf("update did not persist zero values: %+v", updated)
-	}
-	var persisted database.Service
-	if err := db.First(&persisted, created.ID).Error; err != nil {
-		t.Fatal(err)
-	}
-	if persisted.Enabled || persisted.SkipTLSVerify || persisted.UpstreamURL != updated.UpstreamURL || persisted.UpdatedAt.IsZero() {
-		t.Fatalf("stored configuration differs: %+v", persisted)
-	}
-	var location struct{ File string }
-	if err := db.Raw("PRAGMA database_list").Scan(&location).Error; err != nil {
-		t.Fatal(err)
-	}
-	reopened, err := database.Open(location.File)
-	if err != nil {
-		t.Fatal(err)
-	}
-	reopenedSQL, _ := reopened.DB()
-	defer reopenedSQL.Close()
-	var reloaded database.Service
-	if err := reopened.First(&reloaded, created.ID).Error; err != nil {
-		t.Fatal(err)
-	}
-	if reloaded.UpstreamURL != updated.UpstreamURL || reloaded.Enabled || reloaded.SkipTLSVerify {
-		t.Fatalf("configuration lost on reopening: %+v", reloaded)
-	}
-	apiRequest(t, app, "DELETE", path, "", 204, adminCookie)
-	apiRequest(t, app, "GET", path, "", 404, adminCookie)
 }

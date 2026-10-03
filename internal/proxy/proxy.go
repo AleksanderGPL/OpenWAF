@@ -1,7 +1,9 @@
 package proxy
 
 import (
+	"context"
 	"crypto/tls"
+	"errors"
 	"log"
 	"net"
 	"net/http"
@@ -10,24 +12,27 @@ import (
 	"strings"
 	"time"
 
-	"OpenWAF/internal/database"
-	"gorm.io/gorm"
+	"OpenWAF/internal/domain"
 )
 
+type Store interface {
+	EnabledService(context.Context, string) (domain.Service, error)
+}
+
 type Service struct {
-	db       *gorm.DB
+	store    Store
 	verified *http.Transport
 	insecure *http.Transport
 }
 
-func New(db *gorm.DB) *Service {
+func New(store Store) *Service {
 	verified := http.DefaultTransport.(*http.Transport).Clone()
 	verified.Proxy = nil
 	verified.DialContext = (&net.Dialer{Timeout: 10 * time.Second, KeepAlive: 30 * time.Second}).DialContext
 	verified.ResponseHeaderTimeout = 30 * time.Second
 	insecure := verified.Clone()
 	insecure.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	return &Service{db: db, verified: verified, insecure: insecure}
+	return &Service{store: store, verified: verified, insecure: insecure}
 }
 
 func (s *Service) Close() {
@@ -52,17 +57,17 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		host = hostname
 	}
 	host = strings.TrimSuffix(strings.ToLower(strings.Trim(host, "[]")), ".")
-	var service database.Service
-	if err := s.db.WithContext(r.Context()).Where("hostname = ? AND enabled = ?", host, true).Limit(1).Find(&service).Error; err != nil {
+	service, err := s.store.EnabledService(r.Context(), host)
+	if errors.Is(err, domain.ErrServiceNotFound) {
+		http.Error(w, "Service not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
 		log.Printf("proxy service lookup failed: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
-	if service.ID == 0 {
-		http.Error(w, "Service not found", http.StatusNotFound)
-		return
-	}
-	target, err := upstreamURL(service.UpstreamURL)
+	target, err := domain.UpstreamURL(service.UpstreamURL)
 	if err != nil {
 		log.Printf("invalid upstream for service %d: %v", service.ID, err)
 		http.Error(w, "Invalid upstream configuration", http.StatusBadGateway)
