@@ -2,7 +2,32 @@
 @import "@nuxt/ui";
 
 @theme {
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Figtree', sans-serif;
+}
+
+@layer base {
+  body {
+    line-height: 1.6;
+  }
+}
+
+:root {
+  --ui-radius: 0.125rem;
+}
+
+:root, .light {
+  --ui-bg: var(--ui-color-neutral-50);
+  --ui-bg-muted: var(--ui-color-neutral-100);
+  --ui-text-inverted: var(--ui-color-neutral-50);
+}
+
+.dark {
+  --ui-text-highlighted: var(--ui-color-neutral-50);
+  --ui-bg-inverted: var(--ui-color-neutral-50);
+  --ui-border-inverted: var(--ui-color-neutral-50);
+  --ui-bg: var(--ui-color-neutral-900);
+  --ui-bg-muted: var(--ui-color-neutral-800);
+  --ui-text-inverted: var(--ui-color-neutral-900);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -58,15 +58,6 @@ async function save(event: FormSubmitEvent<z.output<typeof schema>>) {
 
 <template>
   <main class="mx-auto flex w-full max-w-4xl flex-col gap-6">
-    <div>
-      <h1 class="text-2xl font-semibold tracking-tight text-highlighted">
-        Workspace settings
-      </h1>
-      <p class="mt-1 text-sm text-muted">
-        Manage your request logs and personalize your dashboard.
-      </p>
-    </div>
-
     <UCard>
       <template #header>
         <div class="flex items-center gap-3">

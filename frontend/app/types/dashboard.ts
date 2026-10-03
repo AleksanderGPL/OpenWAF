@@ -27,7 +27,7 @@ export interface TrafficPoint {
 export type DashboardRange = '24h' | '7d' | '30d'
 export type TrafficView = 'requests' | 'bandwidth'
 export type RequestFilter = 'All requests' | RequestAction
-export type DashboardSection = 'overview' | 'traffic' | 'threats' | 'logs' | 'blocked'
+export type DashboardSection = 'overview'
 export interface DashboardMetric {
   label: string
   value: string

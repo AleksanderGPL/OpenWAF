@@ -15,24 +15,20 @@ if (user.value) {
   await navigateTo('/dash/overview')
 }
 
-const inputUi = { base: 'rounded-lg' }
-
 const registerFields = [{
   name: 'username',
   type: 'text' as const,
   label: 'Username',
   size: 'lg' as const,
   autocomplete: 'username',
-  defaultValue: '',
-  ui: inputUi
+  defaultValue: ''
 }, {
   name: 'password',
   type: 'password' as const,
   label: 'Password',
   size: 'lg' as const,
   autocomplete: 'new-password',
-  defaultValue: '',
-  ui: inputUi
+  defaultValue: ''
 }]
 
 const loginFields = [{
@@ -41,16 +37,14 @@ const loginFields = [{
   label: 'Username',
   size: 'lg' as const,
   autocomplete: 'username',
-  defaultValue: savedUsername,
-  ui: inputUi
+  defaultValue: savedUsername
 }, {
   name: 'password',
   type: 'password' as const,
   label: 'Password',
   size: 'lg' as const,
   autocomplete: 'current-password',
-  defaultValue: '',
-  ui: inputUi
+  defaultValue: ''
 }, {
   name: 'remember',
   type: 'checkbox' as const,
@@ -129,7 +123,7 @@ async function onLogin(event: { data: z.output<typeof loginSchema> }) {
       v-else-if="!registered"
       :fields="registerFields"
       :schema="registerSchema"
-      :submit="{ label: 'Create account', size: 'xl', class: 'h-12 rounded-lg font-semibold' }"
+      :submit="{ label: 'Create account', size: 'xl', class: 'h-12 font-semibold' }"
       :loading="pending"
       novalidate
       :ui="formUi"
@@ -158,7 +152,7 @@ async function onLogin(event: { data: z.output<typeof loginSchema> }) {
       v-else
       :fields="loginFields"
       :schema="loginSchema"
-      :submit="{ label: 'Sign in', size: 'xl', class: 'h-12 rounded-lg font-semibold' }"
+      :submit="{ label: 'Sign in', size: 'xl', class: 'h-12 font-semibold' }"
       :loading="pending"
       novalidate
       :ui="formUi"

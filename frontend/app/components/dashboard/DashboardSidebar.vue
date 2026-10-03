@@ -10,7 +10,6 @@ const open = defineModel<boolean>('open', {
 const emit = defineEmits<{
   navigate: [section: DashboardSection, label: string]
 }>()
-const toast = useToast()
 const auth = useAuthStore()
 const { user } = storeToRefs(auth)
 const displayName = computed(() => user.value?.name || user.value?.username || 'Account')
@@ -28,22 +27,6 @@ const sections: {
   label: 'Overview',
   icon: 'i-lucide-layout-dashboard',
   target: 'overview'
-}, {
-  label: 'Traffic analytics',
-  icon: 'i-lucide-chart-no-axes-combined',
-  target: 'traffic'
-}, {
-  label: 'Security events',
-  icon: 'i-lucide-shield-check',
-  target: 'threats'
-}, {
-  label: 'Request logs',
-  icon: 'i-lucide-scroll-text',
-  target: 'logs'
-}, {
-  label: 'Blocked sources',
-  icon: 'i-lucide-ban',
-  target: 'blocked'
 }]
 const navigationItems = computed<NavigationMenuItem[]>(() => [...sections.map(item => ({
   label: item.label,
@@ -57,13 +40,6 @@ const navigationItems = computed<NavigationMenuItem[]>(() => [...sections.map(it
   active: props.activeSection === 'settings',
   onSelect: () => { open.value = false }
 }])
-function showHelp() {
-  toast.add({
-    title: 'Choose a time range, explore the charts, or filter and export request logs.',
-    icon: 'i-lucide-circle-check',
-    color: 'success'
-  })
-}
 </script>
 
 <template>
@@ -103,18 +79,6 @@ function showHelp() {
         popover
         class="w-full"
       />
-      <div class="mt-auto flex flex-col gap-3 pt-8">
-        <UButton
-          icon="i-lucide-circle-help"
-          :label="collapsed ? undefined : 'Dashboard help'"
-          color="neutral"
-          variant="ghost"
-          :square="collapsed"
-          :class="collapsed ? 'mx-auto' : 'justify-start'"
-          aria-label="Dashboard help"
-          @click="showHelp"
-        />
-      </div>
     </template>
     <template #footer="{ collapsed }">
       <div class="flex items-center gap-1 py-2" :class="collapsed ? 'flex-col' : 'w-full'">
