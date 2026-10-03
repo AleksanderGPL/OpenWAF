@@ -14,6 +14,16 @@ var passwordParams = &argon2id.Params{
 	Memory: 64 * 1024, Iterations: 3, Parallelism: 4, SaltLength: 16, KeyLength: 32,
 }
 
+type SetupRequest struct {
+	Username string `json:"username" required:"true" description:"Trimmed username, 1–255 bytes"`
+	Password string `json:"password" required:"true" minLength:"8" format:"password" description:"At least 8 characters and at most 1024 bytes"`
+	Name     string `json:"name" description:"At most 255 bytes; defaults to username when empty"`
+}
+
+type SetupStatus struct {
+	Completed bool `json:"completed" required:"true"`
+}
+
 func setupCompleted(db *gorm.DB) (bool, error) {
 	var user database.User
 	err := db.Select("id").Where("role = ?", "admin").Limit(1).Find(&user).Error
@@ -25,7 +35,7 @@ func (s *Service) setupStatus(c fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	return c.JSON(fiber.Map{"completed": completed})
+	return c.JSON(SetupStatus{Completed: completed})
 }
 
 func (s *Service) completeSetup(c fiber.Ctx) error {
@@ -36,11 +46,7 @@ func (s *Service) completeSetup(c fiber.Ctx) error {
 	if completed {
 		return fiber.NewError(fiber.StatusConflict, "Setup has already been completed")
 	}
-	var body struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-		Name     string `json:"name"`
-	}
+	var body SetupRequest
 	if err := readJSON(c, &body); err != nil {
 		return err
 	}

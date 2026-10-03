@@ -7,9 +7,11 @@ import (
 	"errors"
 	"log"
 	"mime"
+	"net/http"
 	"strings"
 	"time"
 
+	"OpenWAF/internal/api"
 	"OpenWAF/internal/database"
 	"github.com/alexedwards/argon2id"
 	"github.com/gofiber/fiber/v3"
@@ -18,6 +20,11 @@ import (
 )
 
 const sessionLifetime = 30 * 24 * time.Hour
+
+type SignInRequest struct {
+	Username string `json:"username" required:"true" description:"Nonblank username, at most 255 bytes"`
+	Password string `json:"password" required:"true" minLength:"1" format:"password" description:"At most 1024 bytes"`
+}
 
 type Service struct {
 	db           *gorm.DB
@@ -44,22 +51,28 @@ func tokenHash(token string) string {
 	return hex.EncodeToString(hash[:])
 }
 
-func (s *Service) Register(api fiber.Router) {
-	auth := api.Group("/auth", func(c fiber.Ctx) error {
+func (s *Service) Register(router *api.Router) {
+	auth := router.Group("/auth", func(c fiber.Ctx) error {
 		c.Set("Cache-Control", "no-store")
 		return c.Next()
 	})
-	auth.Get("/setup", s.setupStatus)
-	auth.Post("/setup", limiter.New(limiter.Config{
+	auth.Handle(http.MethodGet, "/setup", api.Operation{ID: "getSetupStatus", Summary: "Check whether the first admin exists", Response: SetupStatus{}}, s.setupStatus)
+	auth.Handle(http.MethodPost, "/setup", api.Operation{
+		ID: "completeSetup", Summary: "Register the first admin", Request: SetupRequest{}, Response: database.User{},
+		Status: 201, Errors: []int{400, 409, 415, 429},
+	}, limiter.New(limiter.Config{
 		Max: 10, Expiration: time.Minute,
 		LimitReached: func(c fiber.Ctx) error { return fiber.ErrTooManyRequests },
 	}), s.completeSetup)
-	auth.Post("/sign-in", limiter.New(limiter.Config{
+	auth.Handle(http.MethodPost, "/sign-in", api.Operation{
+		ID: "signIn", Summary: "Sign in", Description: "Sets an HttpOnly session cookie valid for 30 days.",
+		Request: SignInRequest{}, Response: database.User{}, Errors: []int{400, 401, 415, 429},
+	}, limiter.New(limiter.Config{
 		Max: 10, Expiration: time.Minute,
 		LimitReached: func(c fiber.Ctx) error { return fiber.ErrTooManyRequests },
 	}), s.signIn)
-	auth.Post("/sign-out", s.signOut)
-	auth.Get("/", s.RequireAuth, func(c fiber.Ctx) error {
+	auth.Handle(http.MethodPost, "/sign-out", api.Operation{ID: "signOut", Summary: "Revoke the session and clear its cookie", Status: 204}, s.signOut)
+	auth.Handle(http.MethodGet, "/", api.Operation{ID: "getCurrentUser", Summary: "Get the current user", Response: database.User{}, Session: true, Errors: []int{401}}, s.RequireAuth, func(c fiber.Ctx) error {
 		return c.JSON(c.Locals("authUser"))
 	})
 }
@@ -88,10 +101,7 @@ func readJSON(c fiber.Ctx, body any) error {
 }
 
 func (s *Service) signIn(c fiber.Ctx) error {
-	var body struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-	}
+	var body SignInRequest
 	if err := readJSON(c, &body); err != nil {
 		return err
 	}
@@ -175,5 +185,5 @@ func ErrorHandler(c fiber.Ctx, err error) error {
 	} else {
 		log.Printf("request failed: %v", err)
 	}
-	return c.Status(code).JSON(fiber.Map{"message": message})
+	return c.Status(code).JSON(api.ErrorResponse{Message: message})
 }
