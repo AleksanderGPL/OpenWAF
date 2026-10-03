@@ -35,13 +35,15 @@ func TestDevelopmentOpenAPI(t *testing.T) {
 	if err := json.Unmarshal(body, &spec); err != nil {
 		t.Fatal(err)
 	}
-	if spec.OpenAPI != "3.0.3" || len(spec.Paths) != 7 {
+	if spec.OpenAPI != "3.0.3" || len(spec.Paths) != 14 {
 		t.Fatalf("unexpected schema: %s paths=%d", spec.OpenAPI, len(spec.Paths))
 	}
 	expected := map[string][]string{
 		"/api/auth/setup": {"get", "post"}, "/api/auth/sign-in": {"post"},
 		"/api/auth/sign-out": {"post"}, "/api/auth": {"get"},
 		"/api/services": {"get", "post"}, "/api/services/{id}": {"get", "put", "delete"}, "/api/stats": {"get"},
+		"/api/stats/traffic": {"get"}, "/api/stats/threats": {"get"}, "/api/stats/blocked-sources": {"get"},
+		"/api/logs": {"get"}, "/api/logs/export": {"get"}, "/api/logs/{id}": {"get"}, "/api/settings": {"get", "put"},
 	}
 	ids := make(map[string]bool)
 	for path, methods := range expected {
@@ -67,12 +69,43 @@ func TestDevelopmentOpenAPI(t *testing.T) {
 	if strings.Contains(string(spec.Paths["/api/services/{id}"]["delete"].Responses["204"]), `"content"`) {
 		t.Fatal("204 response incorrectly includes a body")
 	}
+
+	for path, names := range map[string][]string{
+		"/api/stats": {"range", "from", "to", "serviceId"},
+		"/api/logs":  {"range", "from", "to", "serviceId", "action", "ip", "method", "status", "ruleId", "search", "page", "limit"},
+	} {
+		parameters := make(map[string]bool)
+		for _, parameter := range spec.Paths[path]["get"].Parameters {
+			var name string
+			if err := json.Unmarshal(parameter["name"], &name); err != nil {
+				t.Fatal(err)
+			}
+			if string(parameter["in"]) != `"query"` {
+				t.Fatalf("incorrect parameter location: %s %s", path, name)
+			}
+			parameters[name] = true
+		}
+		for _, name := range names {
+			if !parameters[name] {
+				t.Errorf("%s missing parameter %s", path, name)
+			}
+		}
+	}
+	if !strings.Contains(string(spec.Paths["/api/logs/export"]["get"].Responses["200"]), `"text/csv"`) {
+		t.Fatal("CSV response missing from schema")
+	}
+	for _, path := range []string{"/api/stats", "/api/stats/traffic", "/api/stats/threats", "/api/stats/blocked-sources", "/api/logs", "/api/logs/export", "/api/logs/{id}", "/api/settings"} {
+		if len(spec.Paths[path]["get"].Security) != 1 {
+			t.Fatalf("missing session security for %s", path)
+		}
+	}
+
 	for name, schema := range spec.Components.Schemas {
 		if strings.Contains(strings.ToLower(string(schema)), "passwordhash") {
 			t.Fatalf("%s exposes password hashes", name)
 		}
 	}
-	for _, field := range []string{"username", "password", "completed", "upstreamUrl", "skipTlsVerify", "enabled"} {
+	for _, field := range []string{"username", "password", "completed", "upstreamUrl", "skipTlsVerify", "enabled", "logRetentionDays", "durationMs", "requestBytes", "responseBytes", "collectionFailures"} {
 		if !strings.Contains(string(body), `"`+field+`"`) {
 			t.Errorf("schema missing %s", field)
 		}

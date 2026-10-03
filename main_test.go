@@ -11,6 +11,7 @@ import (
 	"OpenWAF/internal/auth"
 	"OpenWAF/internal/database"
 	"OpenWAF/internal/services"
+	"OpenWAF/internal/telemetry"
 	"github.com/gofiber/fiber/v3"
 )
 
@@ -33,7 +34,7 @@ func testAPI(t *testing.T) *fiber.App {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := registerAPI(app, auth.NewHandler(authService, false, rateLimitKey), services.NewHandler(services.New(store))); err != nil {
+	if err := registerAPI(app, auth.NewHandler(authService, false, rateLimitKey), services.NewHandler(services.New(store)), telemetry.NewHandler(telemetry.New(store))); err != nil {
 		t.Fatal(err)
 	}
 	serveFrontend(app)

@@ -8,6 +8,7 @@ var (
 	ErrSetupCompleted     = errors.New("Setup has already been completed")
 	ErrUsernameTaken      = errors.New("Username is already taken")
 	ErrHostnameTaken      = errors.New("A service with this hostname already exists")
+	ErrLogNotFound        = errors.New("Request log not found")
 	ErrServiceNotFound    = errors.New("Not Found")
 )
 

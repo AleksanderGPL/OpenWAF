@@ -3,15 +3,16 @@ package api
 import "github.com/gofiber/fiber/v3"
 
 type Operation struct {
-	ID          string
-	Summary     string
-	Description string
-	Request     any
-	Parameters  any
-	Response    any
-	Status      int
-	Errors      []int
-	Session     bool
+	ID                  string
+	Summary             string
+	Description         string
+	Request             any
+	Parameters          any
+	ResponseContentType string
+	Response            any
+	Status              int
+	Errors              []int
+	Session             bool
 }
 
 type ErrorResponse struct {

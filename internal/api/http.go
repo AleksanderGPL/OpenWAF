@@ -34,7 +34,7 @@ func ErrorHandler(c fiber.Ctx, err error) error {
 		code, message = http.StatusUnauthorized, err.Error()
 	case errors.Is(err, domain.ErrSetupCompleted), errors.Is(err, domain.ErrUsernameTaken), errors.Is(err, domain.ErrHostnameTaken):
 		code, message = http.StatusConflict, err.Error()
-	case errors.Is(err, domain.ErrServiceNotFound):
+	case errors.Is(err, domain.ErrServiceNotFound), errors.Is(err, domain.ErrLogNotFound):
 		code, message = http.StatusNotFound, err.Error()
 	default:
 		log.Printf("request failed: %v", err)

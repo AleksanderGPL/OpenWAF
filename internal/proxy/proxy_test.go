@@ -15,6 +15,7 @@ import (
 
 	"OpenWAF/internal/database"
 	"OpenWAF/internal/domain"
+	"OpenWAF/internal/telemetry"
 	"gorm.io/gorm"
 )
 
@@ -24,7 +25,7 @@ func testService(t *testing.T) (*Service, *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s := New(database.NewStore(db))
+	s := New(database.NewStore(db), telemetry.New(database.NewStore(db)), nil)
 	t.Cleanup(func() {
 		s.Close()
 		sqlDB, _ := db.DB()
@@ -154,7 +155,7 @@ func TestUpstreamTLSVerification(t *testing.T) {
 	if w := proxyRequest(s, "GET", "/", ""); w.Code != 502 {
 		t.Fatalf("verification change ignored: %d", w.Code)
 	}
-	trusted := New(database.NewStore(db))
+	trusted := New(database.NewStore(db), telemetry.New(database.NewStore(db)), nil)
 	defer trusted.Close()
 	trusted.verified.TLSClientConfig = upstream.Client().Transport.(*http.Transport).TLSClientConfig.Clone()
 	if w := proxyRequest(trusted, "GET", "/", ""); w.Code != 200 {

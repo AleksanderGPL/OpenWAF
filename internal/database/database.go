@@ -37,9 +37,13 @@ func Open(path string) (*gorm.DB, error) {
 		return nil, err
 	}
 	sqlDB.SetMaxOpenConns(1)
-	if err := db.AutoMigrate(&domain.User{}, &domain.UserSession{}, &domain.Service{}); err != nil {
+	if err := db.AutoMigrate(&domain.User{}, &domain.UserSession{}, &domain.Service{}, &domain.RequestLog{}, &domain.Settings{}); err != nil {
 		sqlDB.Close()
 		return nil, fmt.Errorf("migrate database: %w", err)
+	}
+	if err := db.Where(domain.Settings{ID: 1}).Attrs(domain.Settings{LogRetentionDays: 30}).FirstOrCreate(&domain.Settings{}).Error; err != nil {
+		sqlDB.Close()
+		return nil, fmt.Errorf("initialize settings: %w", err)
 	}
 	return db, nil
 }

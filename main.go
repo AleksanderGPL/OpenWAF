@@ -15,9 +15,11 @@ import (
 
 	"OpenWAF/internal/api"
 	"OpenWAF/internal/auth"
+	"OpenWAF/internal/clientip"
 	"OpenWAF/internal/database"
 	"OpenWAF/internal/proxy"
 	"OpenWAF/internal/services"
+	"OpenWAF/internal/telemetry"
 
 	"github.com/gofiber/fiber/v3"
 )
@@ -60,9 +62,14 @@ func run() error {
 	}
 	app := fiber.New(fiber.Config{ErrorHandler: api.ErrorHandler, BodyLimit: 16 * 1024})
 
-	proxyService := proxy.New(store)
+	clientIP, err := clientip.New(trustedProxies())
+	if err != nil {
+		return err
+	}
+	telemetryService := telemetry.New(store)
+	proxyService := proxy.New(store, telemetryService, clientIP)
 	defer proxyService.Close()
-	if err := registerAPI(app, auth.NewHandler(authService, secure, rateLimitKey), services.NewHandler(services.New(store))); err != nil {
+	if err := registerAPI(app, auth.NewHandler(authService, secure, rateLimitKey), services.NewHandler(services.New(store)), telemetry.NewHandler(telemetryService)); err != nil {
 		return err
 	}
 
@@ -87,6 +94,9 @@ func run() error {
 	defer proxyServer.Close()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	retentionDone := make(chan struct{})
+	go func() { defer close(retentionDone); telemetryService.RunRetention(ctx) }()
+	defer func() { stop(); <-retentionDone }()
 	serverErrors := make(chan error, 2)
 	go func() { serverErrors <- proxyServer.Serve(proxyListener) }()
 	go func() { serverErrors <- app.Listener(adminListener) }()
@@ -107,7 +117,7 @@ func run() error {
 	return errors.Join(err, proxyShutdownErr, adminShutdownErr)
 }
 
-func authRateLimitKey() (func(fiber.Ctx) string, error) {
+func trustedProxies() []string {
 	value, configured := os.LookupEnv("TRUSTED_PROXIES")
 	if !configured {
 		value = "127.0.0.1,::1"
@@ -116,5 +126,7 @@ func authRateLimitKey() (func(fiber.Ctx) string, error) {
 	if strings.TrimSpace(value) != "" {
 		proxies = strings.Split(value, ",")
 	}
-	return api.ClientIPKey(proxies)
+	return proxies
 }
+
+func authRateLimitKey() (func(fiber.Ctx) string, error) { return api.ClientIPKey(trustedProxies()) }

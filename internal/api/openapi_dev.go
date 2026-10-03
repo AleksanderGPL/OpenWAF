@@ -60,7 +60,12 @@ func (d *document) add(method, path string, operation Operation) {
 	if status == 0 {
 		status = http.StatusOK
 	}
-	context.AddRespStructure(operation.Response, func(cu *openapi.ContentUnit) { cu.HTTPStatus = status })
+	context.AddRespStructure(operation.Response, func(cu *openapi.ContentUnit) {
+		cu.HTTPStatus = status
+		if operation.ResponseContentType != "" {
+			cu.ContentType = operation.ResponseContentType
+		}
+	})
 	if operation.Session {
 		context.AddSecurity("session")
 	}
