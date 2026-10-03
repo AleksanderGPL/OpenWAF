@@ -1,8 +1,8 @@
 .PHONY: dev build
 
 dev:
-	node scripts/dev.mjs
+	bun scripts/dev.mjs
 
 build:
-	cd frontend && npm run generate
+	cd frontend && bun run generate
 	go build -o bin/openwaf .

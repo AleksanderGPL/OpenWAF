@@ -15,6 +15,7 @@ import (
 var gui embed.FS
 
 const listenAddress = ":3000"
+const defaultSecureCookies = true
 
 func serveFrontend(app *fiber.App) {
 	strippedFS, err := fs.Sub(gui, "frontend/.output/public")
