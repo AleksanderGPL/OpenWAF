@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"OpenWAF/internal/domain"
 
@@ -27,7 +28,12 @@ func Open(path string) (*gorm.DB, error) {
 	if err := file.Close(); err != nil {
 		return nil, err
 	}
-	dsn := (&url.URL{Scheme: "file", Path: absolute}).String() + "?_foreign_keys=on&_busy_timeout=5000&_journal_mode=WAL&_txlock=immediate"
+	// SQLite file URIs use forward slashes and /C:/ for Windows drive paths.
+	uriPath := filepath.ToSlash(absolute)
+	if !strings.HasPrefix(uriPath, "/") {
+		uriPath = "/" + uriPath
+	}
+	dsn := (&url.URL{Scheme: "file", Path: uriPath}).String() + "?_foreign_keys=on&_busy_timeout=5000&_journal_mode=WAL&_txlock=immediate"
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{TranslateError: true})
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
