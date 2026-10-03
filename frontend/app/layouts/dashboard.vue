@@ -2,19 +2,7 @@
 import type { DashboardSection } from '~/types/dashboard'
 import { useMediaQuery } from '@vueuse/core'
 
-const { t, locale, locales, setLocale } = useI18n()
-const selectedLocale = computed({
-  get: () => locale.value,
-  set: (code: string) => {
-    setLocale(code as typeof locale.value)
-  }
-})
-const localeOptions = computed(() => locales.value.map(item => ({
-  code: item.code,
-  name: item.name ?? item.code,
-  dir: item.dir === 'rtl' ? 'rtl' as const : 'ltr' as const,
-  messages: {}
-})))
+const { t } = useI18n()
 const auth = useAuthStore()
 const { user } = storeToRefs(auth)
 const route = useRoute()
@@ -31,13 +19,15 @@ const activeSection = ref<DashboardSection>('overview')
 const routedPages = {
   '/dash/logs': 'logs',
   '/dash/settings': 'settings',
-  '/dash/services': 'services'
+  '/dash/services': 'services',
+  '/dash/rules': 'rules'
 } as const
 const routedPage = computed(() => routedPages[route.path as keyof typeof routedPages] ?? null)
 const pageTitle = computed(() => {
   if (routedPage.value === 'logs') return t('nav.logs')
   if (routedPage.value === 'settings') return t('nav.settings')
   if (routedPage.value === 'services') return t('nav.services')
+  if (routedPage.value === 'rules') return t('nav.rules')
   return t('nav.overview')
 })
 async function navigate(section: DashboardSection) {
@@ -65,7 +55,6 @@ async function navigate(section: DashboardSection) {
             <UDashboardSidebarCollapse />
           </template>
           <template #right>
-            <ULocaleSelect v-model="selectedLocale" :locales="localeOptions" class="w-36" :aria-label="t('settings.language')" />
             <UButton
               :label="desktop && agentVisible ? t('agent.hide') : t('agent.ask')"
               icon="i-lucide-sparkles"

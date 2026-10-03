@@ -2,7 +2,7 @@
 import type { NavigationMenuItem } from '@nuxt/ui'
 import type { DashboardSection } from '~/types/dashboard'
 const props = defineProps<{
-  activeSection: DashboardSection | 'settings' | 'services' | 'logs'
+  activeSection: DashboardSection | 'settings' | 'services' | 'logs' | 'rules'
 }>()
 const open = defineModel<boolean>('open', {
   default: false
@@ -43,6 +43,12 @@ const navigationItems = computed<NavigationMenuItem[]>(() => [...sections.map(it
   icon: 'i-lucide-server',
   to: '/dash/services',
   active: props.activeSection === 'services',
+  onSelect: () => { open.value = false }
+}, {
+  label: t('nav.rules'),
+  icon: 'i-lucide-shield',
+  to: '/dash/rules',
+  active: props.activeSection === 'rules',
   onSelect: () => { open.value = false }
 }, {
   label: t('nav.settings'),

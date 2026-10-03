@@ -24,7 +24,22 @@ const apiErrorKeys: Record<string, string> = {
   'Upstream port must be between 1 and 65535': 'services.validation.portRange',
   'Upstream port cannot be empty': 'services.validation.emptyPort',
   'Invalid service ID': 'errors.invalidServiceId',
-  'logRetentionDays must be between 1 and 3650': 'errors.retentionRange'
+  'logRetentionDays must be between 1 and 3650': 'errors.retentionRange',
+  'A rule requires a name (1..120 bytes), description up to 1000 bytes and 1..10 conditions': 'errors.ruleInput',
+  'action must be block or log': 'errors.ruleAction',
+  'key is only supported for query and header conditions': 'errors.ruleKeyUnused',
+  'query and header conditions require a valid key': 'rules.validation.key',
+  'Unknown condition target': 'errors.ruleTarget',
+  'Condition value must be 1..512 bytes without control characters': 'rules.validation.value',
+  'Invalid regular expression': 'rules.validation.regex',
+  'cidr only supports the ip target': 'rules.validation.cidrTarget',
+  'Invalid CIDR': 'rules.validation.cidr',
+  'Unknown condition operator': 'errors.ruleOperator',
+  'serviceId must be positive or null': 'rules.validation.scope',
+  'serviceId must be a positive integer': 'rules.validation.scope',
+  'At most 500 custom rules are permitted': 'errors.ruleLimit',
+  'A rule\'s scope cannot be changed; create a new rule': 'errors.ruleScopeLocked',
+  'Invalid rule ID': 'errors.invalidRuleId'
 }
 
 export function translateApiMessage(message: string) {
