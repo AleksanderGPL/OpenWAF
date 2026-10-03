@@ -4,15 +4,20 @@ import type { DashboardRange, RequestFilter, RequestLog } from '~/types/dashboar
 import type { LogPage } from '~/types/telemetry'
 import { requestLogView } from '~/utils/telemetry'
 const { t, locale } = useI18n()
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   range: DashboardRange
   refreshToken: number
-}>()
+  pageSize?: number
+  showRefresh?: boolean
+}>(), {
+  pageSize: 6,
+  showRefresh: false
+})
 const logFilter = ref<RequestFilter>('All requests')
 const search = ref('')
 const searchQuery = ref('')
 const page = ref(1)
-const pageSize = 6
+const pageSize = computed(() => props.pageSize)
 let searchTimer: ReturnType<typeof setTimeout> | undefined
 watch(search, value => {
   clearTimeout(searchTimer)
@@ -28,18 +33,18 @@ const action = computed(() => logFilter.value === 'Blocked' ? 'blocked' : logFil
 const query = computed(() => ({
   range: props.range,
   page: page.value,
-  limit: pageSize,
+  limit: pageSize.value,
   action: action.value,
   search: searchQuery.value || undefined
 }))
-const { data, error, refresh } = await useFetch<LogPage>('/api/logs', { query })
+const { data, error, status, refresh } = await useFetch<LogPage>('/api/logs', { query })
 watch(() => props.refreshToken, () => {
   refresh()
 })
 const visibleLogs = computed(() => (data.value?.items ?? []).map(log => requestLogView(log, locale.value === 'pl' ? 'pl-PL' : 'en-GB')))
 const total = computed(() => data.value?.total ?? 0)
-const firstVisible = computed(() => total.value ? (page.value - 1) * pageSize + 1 : 0)
-const lastVisible = computed(() => Math.min(page.value * pageSize, total.value))
+const firstVisible = computed(() => total.value ? (page.value - 1) * pageSize.value + 1 : 0)
+const lastVisible = computed(() => Math.min(page.value * pageSize.value, total.value))
 const selectedLog = ref<RequestLog | null>(null)
 const searchInput = useTemplateRef<{
   inputRef: HTMLInputElement
@@ -131,14 +136,26 @@ async function exportLogs() {
             {{ t('logs.description') }}
           </p>
         </div>
-        <UButton
-          :label="t('logs.export')"
-          icon="i-lucide-download"
-          color="neutral"
-          variant="outline"
-          size="sm"
-          @click="exportLogs"
-        />
+        <div class="flex items-center gap-2">
+          <UButton
+            v-if="showRefresh"
+            :label="t('logs.refresh')"
+            icon="i-lucide-refresh-cw"
+            color="neutral"
+            variant="outline"
+            size="sm"
+            :loading="status === 'pending'"
+            @click="refresh()"
+          />
+          <UButton
+            :label="t('logs.export')"
+            icon="i-lucide-download"
+            color="neutral"
+            variant="outline"
+            size="sm"
+            @click="exportLogs"
+          />
+        </div>
       </div>
     </template>
     <div class="flex flex-wrap items-center justify-between gap-4 p-4 sm:px-6">
@@ -175,6 +192,7 @@ async function exportLogs() {
     <UTable
       :data="visibleLogs"
       :columns="columns"
+      :loading="status === 'pending'"
       :get-row-id="row => row.id"
       :empty="t('logs.empty')"
       :ui="{ th: 'bg-elevated/50 text-xs', td: 'text-xs', tr: 'hover:bg-elevated/30' }"

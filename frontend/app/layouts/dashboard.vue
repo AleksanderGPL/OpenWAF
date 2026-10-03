@@ -29,11 +29,13 @@ function toggleAgent() {
 }
 const activeSection = ref<DashboardSection>('overview')
 const routedPages = {
+  '/dash/logs': 'logs',
   '/dash/settings': 'settings',
   '/dash/services': 'services'
 } as const
 const routedPage = computed(() => routedPages[route.path as keyof typeof routedPages] ?? null)
 const pageTitle = computed(() => {
+  if (routedPage.value === 'logs') return t('nav.logs')
   if (routedPage.value === 'settings') return t('nav.settings')
   if (routedPage.value === 'services') return t('nav.services')
   return t('nav.overview')

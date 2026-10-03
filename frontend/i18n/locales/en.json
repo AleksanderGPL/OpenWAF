@@ -13,6 +13,7 @@
     "checkConnection": "Check your connection and try again."
   },
   "nav": {
+    "logs": "Logs",
     "workspace": "WORKSPACE",
     "overview": "Overview",
     "services": "Services",
@@ -21,6 +22,8 @@
     "overviewAria": "OpenWAF overview"
   },
   "seo": {
+    "logsTitle": "Logs · OpenWAF",
+    "logsDescription": "Search and inspect request logs recorded by OpenWAF.",
     "overviewTitle": "Overview · OpenWAF",
     "overviewDescription": "OpenWAF request statistics, traffic, threats, and request logs.",
     "settingsTitle": "Settings · OpenWAF",
@@ -104,6 +107,8 @@
     "chart": "Blocked threats by attack type"
   },
   "logs": {
+    "refresh": "Refresh logs",
+    "timeRange": "Log time range",
     "title": "Recent requests",
     "count": {
       "one": "{count} request",

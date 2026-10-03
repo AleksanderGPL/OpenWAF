@@ -13,6 +13,7 @@
     "checkConnection": "Sprawdź połączenie i spróbuj ponownie."
   },
   "nav": {
+    "logs": "Dzienniki",
     "workspace": "OBSZAR ROBOCZY",
     "overview": "Przegląd",
     "services": "Usługi",
@@ -21,6 +22,8 @@
     "overviewAria": "Przegląd OpenWAF"
   },
   "seo": {
+    "logsTitle": "Dzienniki · OpenWAF",
+    "logsDescription": "Wyszukuj i przeglądaj dzienniki żądań zapisane przez OpenWAF.",
     "overviewTitle": "Przegląd · OpenWAF",
     "overviewDescription": "Statystyki żądań, ruch, zagrożenia i dzienniki OpenWAF.",
     "settingsTitle": "Ustawienia · OpenWAF",
@@ -104,6 +107,8 @@
     "chart": "Zablokowane zagrożenia według typu"
   },
   "logs": {
+    "refresh": "Odśwież dzienniki",
+    "timeRange": "Zakres czasu dzienników",
     "title": "Ostatnie żądania",
     "count": {
       "one": "{count} żądanie",
