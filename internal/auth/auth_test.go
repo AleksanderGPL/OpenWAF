@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"OpenWAF/internal/api"
 	"OpenWAF/internal/database"
 	"github.com/gofiber/fiber/v3"
 	"gorm.io/gorm"
@@ -45,7 +46,7 @@ func appForDatabase(t *testing.T, db *gorm.DB, secure bool) *fiber.App {
 		t.Fatal(err)
 	}
 	app := fiber.New(fiber.Config{ErrorHandler: ErrorHandler})
-	service.Register(app.Group("/api"))
+	service.Register(api.New(app).Group("/api"))
 	app.Get("/api/stats", service.RequireAuth, func(c fiber.Ctx) error { return c.SendStatus(200) })
 	t.Cleanup(func() { app.Shutdown() })
 	return app
