@@ -2,7 +2,7 @@
 import type { NavigationMenuItem } from '@nuxt/ui'
 import type { DashboardSection } from '~/types/dashboard'
 const props = defineProps<{
-  activeSection: DashboardSection
+  activeSection: DashboardSection | 'settings'
 }>()
 const open = defineModel<boolean>('open', {
   default: false
@@ -45,12 +45,18 @@ const sections: {
   icon: 'i-lucide-ban',
   target: 'blocked'
 }]
-const navigationItems = computed<NavigationMenuItem[]>(() => sections.map(item => ({
+const navigationItems = computed<NavigationMenuItem[]>(() => [...sections.map(item => ({
   label: item.label,
   icon: item.icon,
   active: props.activeSection === item.target,
   onSelect: () => emit('navigate', item.target, item.label)
-})))
+})), {
+  label: 'Settings',
+  icon: 'i-lucide-settings',
+  to: '/dash/settings',
+  active: props.activeSection === 'settings',
+  onSelect: () => { open.value = false }
+}])
 function showHelp() {
   toast.add({
     title: 'Choose a time range, explore the charts, or filter and export request logs.',
@@ -86,25 +92,6 @@ function showHelp() {
       />
     </template>
     <template #default="{ collapsed }">
-      <UCard v-if="!collapsed" variant="subtle" :ui="{ body: 'p-3 sm:p-3' }">
-        <div class="flex items-center gap-3">
-          <UAvatar text="O" size="sm" :ui="{ root: 'bg-primary/10 text-primary' }" />
-          <div class="min-w-0 flex-1">
-            <p class="truncate text-xs font-semibold text-highlighted">
-              OpenWAF workspace
-            </p>
-            <p class="mt-1 text-xs text-muted">
-              Demo environment
-            </p>
-          </div>
-          <UBadge
-            label="Demo"
-            color="primary"
-            variant="soft"
-            size="sm"
-          />
-        </div>
-      </UCard>
       <p v-if="!collapsed" class="px-2 pt-2 text-xs font-medium tracking-wider text-dimmed">
         WORKSPACE
       </p>
