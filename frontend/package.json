@@ -10,6 +10,7 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@comark/vue": "^0.7.0",
     "@nuxt/icon": "2.5.1",
     "@nuxt/ui": "^4.11.3",
     "@pinia/nuxt": "^1.0.2",
