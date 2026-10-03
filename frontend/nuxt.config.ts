@@ -13,6 +13,14 @@ export default defineNuxtConfig({
       }
     }
   },
-  modules: ['@nuxt/ui'],
+  modules: ['@nuxt/ui', 'nuxt-echarts', '@nuxt/icon'],
+  icon: {
+    provider: 'iconify'
+  },
+  echarts: {
+    renderer: 'svg',
+    charts: ['LineChart', 'BarChart', 'PieChart'],
+    components: ['GridComponent', 'TooltipComponent', 'LegendComponent']
+  },
   css: ['~/assets/css/main.css']
 })
