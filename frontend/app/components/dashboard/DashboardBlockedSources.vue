@@ -3,7 +3,6 @@ import type { BlockedSource } from '~/types/dashboard'
 const props = defineProps<{
   sources: BlockedSource[]
   rangeLabel: string
-  multiplier: number
 }>()
 const maximumRequests = computed(() => Math.max(1, ...props.sources.map(source => source.requests)))
 </script>
@@ -29,7 +28,10 @@ const maximumRequests = computed(() => Math.max(1, ...props.sources.map(source =
         />
       </div>
     </template>
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <p v-if="sources.length === 0" class="text-sm text-muted">
+      No blocked sources in this period.
+    </p>
+    <div v-else class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <UCard
         v-for="(source, index) in sources"
         :key="source.ip"
@@ -58,14 +60,16 @@ const maximumRequests = computed(() => Math.max(1, ...props.sources.map(source =
             variant="outline"
             size="sm"
           />
-          {{ source.country }}
+          <span v-if="source.country">
+            {{ source.country }}
+          </span>
         </p>
         <p class="mt-4 text-xs text-muted">
           {{ source.reason }}
         </p>
         <USeparator class="my-3" />
         <p class="mb-2 text-sm font-medium text-highlighted">
-          {{ formatDashboardNumber(source.requests * multiplier) }}
+          {{ formatDashboardNumber(source.requests) }}
           <span class="text-xs font-normal text-muted">
             requests stopped
           </span>

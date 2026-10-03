@@ -3,10 +3,10 @@ import type { DashboardRange, ThreatCategory } from '~/types/dashboard'
 const props = defineProps<{
   range: DashboardRange
   attacks: ThreatCategory[]
-  multiplier: number
   totalBlocked: number
 }>()
-const attackOption = computed(() => createThreatChartOption(props.attacks, props.multiplier))
+const attackOption = computed(() => createThreatChartOption(props.attacks))
+const threatTotal = computed(() => props.attacks.reduce((sum, attack) => sum + attack.value, 0))
 </script>
 
 <template>
@@ -41,16 +41,16 @@ const attackOption = computed(() => createThreatChartOption(props.attacks, props
       </div>
     </div>
     <div class="mt-5 space-y-3">
-      <div v-for="attack in attacks" :key="attack.name" class="flex items-center gap-2 text-xs">
+      <div v-for="(attack, index) in attacks" :key="`${attack.name}-${index}`" class="flex items-center gap-2 text-xs">
         <span class="size-2 shrink-0 rounded-full" :style="{ backgroundColor: attack.color }" />
         <span class="text-muted">
           {{ attack.name }}
         </span>
         <strong class="ml-auto font-medium text-highlighted">
-          {{ formatDashboardNumber(attack.value * multiplier) }}
+          {{ formatDashboardNumber(attack.value) }}
         </strong>
         <span class="w-11 text-right text-dimmed">
-          {{ (attack.value / (totalBlocked / multiplier) * 100).toFixed(1) }}%
+          {{ threatTotal ? (attack.value / threatTotal * 100).toFixed(1) : '0.0' }}%
         </span>
       </div>
     </div>

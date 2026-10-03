@@ -15,7 +15,7 @@ const requestModalOpen = computed({
   <UModal
     v-model:open="requestModalOpen"
     title="Request details"
-    description="A synthetic event from the local demo dataset."
+    description="Recorded by the proxy."
     :ui="{ footer: 'justify-end' }"
   >
     <template #body>
@@ -32,7 +32,7 @@ const requestModalOpen = computed({
           </div>
           <div class="flex justify-between gap-4 py-3">
             <dt class="text-muted">
-              Time (snapshot)
+              Time
             </dt>
             <dd>
               {{ request.time }}
@@ -51,7 +51,7 @@ const requestModalOpen = computed({
               Location
             </dt>
             <dd>
-              {{ request.country }}
+              {{ request.code === '—' ? 'Unknown' : request.code }}
             </dd>
           </div>
           <div class="flex justify-between gap-4 py-3">
@@ -69,6 +69,30 @@ const requestModalOpen = computed({
             </dt>
             <dd>
               {{ request.rule }}
+            </dd>
+          </div>
+          <div class="flex justify-between gap-4 py-3">
+            <dt class="text-muted">
+              Hostname
+            </dt>
+            <dd class="font-mono text-xs">
+              {{ request.hostname || '—' }}
+            </dd>
+          </div>
+          <div class="flex justify-between gap-4 py-3">
+            <dt class="text-muted">
+              Duration
+            </dt>
+            <dd>
+              {{ formatLatency(request.durationMs) }} ms
+            </dd>
+          </div>
+          <div class="flex justify-between gap-4 py-3">
+            <dt class="text-muted">
+              Body size
+            </dt>
+            <dd>
+              {{ formatBytes(request.requestBytes) }} in · {{ formatBytes(request.responseBytes) }} out
             </dd>
           </div>
           <div class="flex justify-between gap-4 py-3">

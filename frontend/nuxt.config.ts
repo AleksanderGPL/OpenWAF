@@ -13,7 +13,7 @@ export default defineNuxtConfig({
       }
     }
   },
-  modules: ['@nuxt/ui', 'nuxt-echarts', '@nuxt/icon'],
+  modules: ['@nuxt/ui', 'nuxt-echarts', '@nuxt/icon', '@pinia/nuxt'],
   icon: {
     provider: 'iconify'
   },

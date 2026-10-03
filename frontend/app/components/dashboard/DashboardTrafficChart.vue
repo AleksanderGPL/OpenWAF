@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import type { DashboardRange, TrafficView } from '~/types/dashboard'
+import type { DashboardRange, TrafficPoint, TrafficView } from '~/types/dashboard'
 const props = defineProps<{
   range: DashboardRange
-  totalRequests: number
-  totalBlocked: number
+  points: TrafficPoint[]
 }>()
 const trafficView = ref<TrafficView>('requests')
 const trafficTabs = [{
@@ -13,7 +12,7 @@ const trafficTabs = [{
   label: 'Bandwidth',
   value: 'bandwidth'
 }]
-const trafficOption = computed(() => createTrafficChartOption(props.range, trafficView.value, props.totalRequests, props.totalBlocked))
+const trafficOption = computed(() => createTrafficChartOption(props.points, trafficView.value))
 </script>
 
 <template>
@@ -40,11 +39,11 @@ const trafficOption = computed(() => createTrafficChartOption(props.range, traff
     <div class="mb-2 flex flex-wrap gap-5 text-xs text-muted">
       <span class="flex items-center gap-2">
         <span class="size-2 rounded-full bg-indigo-500" />
-        {{ trafficView === 'requests' ? 'Total requests' : 'Total bandwidth' }}
+        {{ trafficView === 'requests' ? 'Total requests' : 'Request body' }}
       </span>
       <span class="flex items-center gap-2">
         <span class="size-2 rounded-full bg-amber-500" />
-        {{ trafficView === 'requests' ? 'Blocked requests' : 'Blocked bandwidth' }}
+        {{ trafficView === 'requests' ? 'Blocked requests' : 'Response body' }}
       </span>
     </div>
     <VChart

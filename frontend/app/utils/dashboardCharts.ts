@@ -1,30 +1,15 @@
 import type { EChartsOption } from 'echarts'
-import type { DashboardRange, TrafficView, ThreatCategory } from '~/types/dashboard'
-import { hourlyTraffic, hourlyBlocked } from '~/data/dashboard'
-import { formatDashboardNumber } from '~/utils/dashboard'
+import type { TrafficPoint, TrafficView, ThreatCategory } from '~/types/dashboard'
+import { formatBytes, formatDashboardNumber } from '~/utils/dashboard'
 
-export function createTrafficChartOption(range: DashboardRange, trafficView: TrafficView, totalRequests: number, totalBlocked: number): EChartsOption {
+export function createTrafficChartOption(points: readonly TrafficPoint[], trafficView: TrafficView): EChartsOption {
   const axisStyle = {
     color: '#94a3b8',
     fontSize: 11,
     fontFamily: 'Inter, system-ui, sans-serif'
   }
-  const chartLabels = range === '24h' ? hourlyTraffic.map((_, index) => `${String(index).padStart(2, '0')}:00`) : Array.from({
-    length: range === '7d' ? 7 : 30
-  }, (_, index) => `Day ${index + 1}`)
-  const length = chartLabels.length
-  const distribute = (total: number, weights: number[]) => {
-    const weightSum = weights.reduce((sum, value) => sum + value, 0)
-    const result = weights.map(weight => Math.floor(total * weight / weightSum))
-    result[result.length - 1]! += total - result.reduce((sum, value) => sum + value, 0)
-    return result
-  }
-  const weights = Array.from({
-    length
-  }, (_, i) => 0.7 + hourlyTraffic[i % 24]! / 52800 * 0.5)
-  const values = range === '24h' ? hourlyTraffic : distribute(totalRequests, weights)
-  const blocked = range === '24h' ? hourlyBlocked : distribute(totalBlocked, weights)
   const bytes = trafficView === 'bandwidth'
+  const labelInterval = points.length <= 8 ? 0 : Math.ceil(points.length / 8) - 1
   return {
     animationDuration: 450,
     color: ['#6366f1', '#f59e0b'],
@@ -36,10 +21,10 @@ export function createTrafficChartOption(range: DashboardRange, trafficView: Tra
         color: '#334155',
         fontSize: 12
       },
-      valueFormatter: value => bytes ? `${Number(value).toFixed(1)} MB` : formatDashboardNumber(Number(value))
+      valueFormatter: value => bytes ? formatBytes(Number(value)) : formatDashboardNumber(Number(value))
     },
     grid: {
-      left: 48,
+      left: bytes ? 64 : 48,
       right: 16,
       top: 22,
       bottom: 32
@@ -47,7 +32,7 @@ export function createTrafficChartOption(range: DashboardRange, trafficView: Tra
     xAxis: {
       type: 'category',
       boundaryGap: false,
-      data: chartLabels,
+      data: points.map(point => point.label),
       axisLine: {
         show: false
       },
@@ -56,7 +41,7 @@ export function createTrafficChartOption(range: DashboardRange, trafficView: Tra
       },
       axisLabel: {
         ...axisStyle,
-        interval: range === '24h' ? 3 : range === '7d' ? 0 : 5,
+        interval: labelInterval,
         margin: 16
       }
     },
@@ -64,7 +49,7 @@ export function createTrafficChartOption(range: DashboardRange, trafficView: Tra
       type: 'value',
       axisLabel: {
         ...axisStyle,
-        formatter: value => bytes ? `${value} MB` : value >= 1000 ? `${value / 1000}k` : String(value)
+        formatter: value => bytes ? formatBytes(Number(value)) : Number(value) >= 1000 ? `${Number(value) / 1000}k` : String(value)
       },
       splitLine: {
         lineStyle: {
@@ -74,11 +59,11 @@ export function createTrafficChartOption(range: DashboardRange, trafficView: Tra
       }
     },
     series: [{
-      name: bytes ? 'Bandwidth (MB)' : 'Total requests',
+      name: bytes ? 'Request body' : 'Total requests',
       type: 'line',
       smooth: 0.35,
       symbol: 'none',
-      data: bytes ? values.map(value => +(value * 0.008).toFixed(1)) : values,
+      data: points.map(point => bytes ? point.requestBytes : point.totalRequests),
       lineStyle: {
         width: 2.5
       },
@@ -99,18 +84,18 @@ export function createTrafficChartOption(range: DashboardRange, trafficView: Tra
         }
       }
     }, {
-      name: bytes ? 'Blocked bandwidth (MB)' : 'Blocked requests',
+      name: bytes ? 'Response body' : 'Blocked requests',
       type: 'line',
       smooth: 0.35,
       symbol: 'none',
-      data: bytes ? blocked.map(value => +(value * 0.008).toFixed(1)) : blocked,
+      data: points.map(point => bytes ? point.responseBytes : point.blockedRequests),
       lineStyle: {
         width: 2
       }
     }]
   }
 }
-export function createThreatChartOption(attacks: readonly ThreatCategory[], multiplier: number): EChartsOption {
+export function createThreatChartOption(attacks: readonly ThreatCategory[]): EChartsOption {
   return {
     color: attacks.map(attack => attack.color),
     tooltip: {
@@ -135,7 +120,7 @@ export function createThreatChartOption(attacks: readonly ThreatCategory[], mult
       },
       data: attacks.map(attack => ({
         name: attack.name,
-        value: attack.value * multiplier
+        value: attack.value
       }))
     }]
   }

@@ -11,6 +11,15 @@ const emit = defineEmits<{
   navigate: [section: DashboardSection, label: string]
 }>()
 const toast = useToast()
+const auth = useAuthStore()
+const { user } = storeToRefs(auth)
+const displayName = computed(() => user.value?.name || user.value?.username || 'Account')
+const initials = computed(() => displayName.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 2).toUpperCase() || 'OW')
+
+async function onSignOut() {
+  await auth.signOut()
+  await navigateTo('/auth')
+}
 const sections: {
   label: string
   icon: string
@@ -121,14 +130,23 @@ function showHelp() {
       </div>
     </template>
     <template #footer="{ collapsed }">
-      <UUser
-        name="Alex Davis"
-        description="Workspace admin · Demo"
-        :avatar="{ text: 'AD' }"
-        :ui="collapsed ? { wrapper: 'hidden' } : {}"
-        class="py-2"
-        :class="collapsed ? 'mx-auto' : 'w-full'"
-      />
+      <div class="flex items-center gap-1 py-2" :class="collapsed ? 'flex-col' : 'w-full'">
+        <UUser
+          :name="displayName"
+          :description="collapsed ? undefined : user?.username"
+          :avatar="{ text: initials }"
+          :ui="collapsed ? { wrapper: 'hidden' } : {}"
+          class="min-w-0 flex-1"
+        />
+        <UButton
+          icon="i-lucide-log-out"
+          color="neutral"
+          variant="ghost"
+          square
+          aria-label="Sign out"
+          @click="onSignOut"
+        />
+      </div>
     </template>
   </UDashboardSidebar>
 </template>

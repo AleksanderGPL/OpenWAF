@@ -1,17 +1,44 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
-import type { RequestLog } from '~/types/dashboard'
-import { requestLogs } from '~/data/dashboard'
-const {
-  logFilter,
-  search,
-  page,
-  pageSize,
-  filteredLogs,
-  visibleLogs,
-  firstVisible,
-  lastVisible
-} = useRequestLogs(requestLogs)
+import type { DashboardRange, RequestFilter, RequestLog } from '~/types/dashboard'
+import type { LogPage } from '~/types/telemetry'
+import { requestLogView } from '~/utils/telemetry'
+const props = defineProps<{
+  range: DashboardRange
+  refreshToken: number
+}>()
+const logFilter = ref<RequestFilter>('All requests')
+const search = ref('')
+const searchQuery = ref('')
+const page = ref(1)
+const pageSize = 6
+let searchTimer: ReturnType<typeof setTimeout> | undefined
+watch(search, value => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    searchQuery.value = value.trim()
+  }, 300)
+})
+onUnmounted(() => clearTimeout(searchTimer))
+watch([() => props.range, logFilter, searchQuery], () => {
+  page.value = 1
+})
+const action = computed(() => logFilter.value === 'Blocked' ? 'blocked' : logFilter.value === 'Allowed' ? 'allowed' : undefined)
+const query = computed(() => ({
+  range: props.range,
+  page: page.value,
+  limit: pageSize,
+  action: action.value,
+  search: searchQuery.value || undefined
+}))
+const { data, error, refresh } = await useFetch<LogPage>('/api/logs', { query })
+watch(() => props.refreshToken, () => {
+  refresh()
+})
+const visibleLogs = computed(() => (data.value?.items ?? []).map(requestLogView))
+const total = computed(() => data.value?.total ?? 0)
+const firstVisible = computed(() => total.value ? (page.value - 1) * pageSize + 1 : 0)
+const lastVisible = computed(() => Math.min(page.value * pageSize, total.value))
 const selectedLog = ref<RequestLog | null>(null)
 const searchInput = useTemplateRef<{
   inputRef: HTMLInputElement
@@ -22,7 +49,7 @@ defineShortcuts({
     if (!selectedLog.value) searchInput.value?.inputRef?.focus()
   }
 })
-const logTabs = ['All requests', 'Blocked', 'Allowed', 'Challenged'].map(label => ({
+const logTabs = ['All requests', 'Blocked', 'Allowed'].map(label => ({
   label,
   value: label
 }))
@@ -45,13 +72,35 @@ const columns: TableColumn<RequestLog>[] = [{
   id: 'details',
   header: ''
 }]
-function exportLogs() {
-  downloadRequestLogs(filteredLogs.value)
-  toast.add({
-    title: 'Exported ' + filteredLogs.value.length + ' mock request logs.',
-    icon: 'i-lucide-circle-check',
-    color: 'success'
-  })
+async function exportLogs() {
+  try {
+    const blob = await $fetch<Blob>('/api/logs/export', {
+      query: {
+        range: props.range,
+        action: action.value,
+        search: searchQuery.value || undefined
+      },
+      responseType: 'blob'
+    })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'openwaf-request-logs.csv'
+    link.click()
+    setTimeout(() => URL.revokeObjectURL(url), 0)
+    toast.add({
+      title: 'Request logs exported',
+      icon: 'i-lucide-circle-check',
+      color: 'success'
+    })
+  } catch (exportError) {
+    const message = (exportError as { data?: { message?: string } }).data?.message
+    toast.add({
+      title: message || 'Could not export logs',
+      icon: 'i-lucide-circle-alert',
+      color: 'error'
+    })
+  }
 }
 </script>
 
@@ -65,7 +114,7 @@ function exportLogs() {
               Recent requests
             </h2>
             <UBadge
-              :label="`${requestLogs.length} sample events`"
+              :label="`${total} requests`"
               color="neutral"
               variant="subtle"
               size="sm"
@@ -109,6 +158,13 @@ function exportLogs() {
         </template>
       </UInput>
     </div>
+    <UAlert
+      v-if="error"
+      class="mx-4 mb-4 sm:mx-6"
+      color="error"
+      variant="subtle"
+      title="Could not load request logs"
+    />
     <UTable
       :data="visibleLogs"
       :columns="columns"
@@ -132,7 +188,9 @@ function exportLogs() {
             variant="soft"
             size="sm"
           />
-          {{ row.original.country }}
+          <span v-if="row.original.country">
+            {{ row.original.country }}
+          </span>
         </div>
       </template>
       <template #request-cell="{ row }">
@@ -180,14 +238,14 @@ function exportLogs() {
           </span>
           of
           <span class="font-medium text-highlighted">
-            {{ filteredLogs.length }}
+            {{ total }}
           </span>
           requests
         </p>
         <UPagination
           v-model:page="page"
           :items-per-page="pageSize"
-          :total="filteredLogs.length"
+          :total="total"
           :sibling-count="0"
           size="sm"
         />

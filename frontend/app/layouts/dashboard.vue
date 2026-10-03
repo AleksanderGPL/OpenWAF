@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import type { DashboardSection } from '~/types/dashboard'
+
+const auth = useAuthStore()
+const { user } = storeToRefs(auth)
+
 const sidebarOpen = ref(false)
 const activeSection = ref<DashboardSection>('overview')
 const activeNav = ref('Overview')
@@ -16,7 +20,7 @@ async function navigate(section: DashboardSection, label: string) {
 </script>
 
 <template>
-  <UDashboardGroup unit="px" storage="local" storage-key="openwaf-dashboard">
+  <UDashboardGroup v-if="user" unit="px" storage="local" storage-key="openwaf-dashboard">
     <DashboardSidebar v-model:open="sidebarOpen" :active-section="activeSection" @navigate="navigate" />
     <UDashboardPanel id="overview-panel" :ui="{ body: 'bg-muted/40' }">
       <template #header>

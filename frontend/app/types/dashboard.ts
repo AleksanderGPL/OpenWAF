@@ -1,4 +1,4 @@
-export type RequestAction = 'Blocked' | 'Allowed' | 'Challenged'
+export type RequestAction = 'Blocked' | 'Allowed'
 export interface RequestLog {
   id: string
   time: string
@@ -10,6 +10,19 @@ export interface RequestLog {
   action: RequestAction
   rule: string
   status: number
+  hostname: string
+  durationMs: number
+  requestBytes: number
+  responseBytes: number
+}
+export interface TrafficPoint {
+  label: string
+  totalRequests: number
+  blockedRequests: number
+  blockRate: number
+  averageLatencyMs: number
+  requestBytes: number
+  responseBytes: number
 }
 export type DashboardRange = '24h' | '7d' | '30d'
 export type TrafficView = 'requests' | 'bandwidth'

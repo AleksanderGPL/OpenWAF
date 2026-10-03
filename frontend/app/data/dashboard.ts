@@ -1,6 +1,4 @@
-import type { RequestLog } from '~/types/dashboard'
-
-export const requestLogs: RequestLog[] = [
+export const requestLogs = [
   { id: 'req_8f2a01', time: '14:32:58', ip: '203.0.113.42', country: 'United States', code: 'US', method: 'POST', path: '/api/auth/login', action: 'Blocked', rule: 'SQL injection', status: 403 },
   { id: 'req_8f2a02', time: '14:32:56', ip: '198.51.100.18', country: 'Germany', code: 'DE', method: 'GET', path: '/products', action: 'Allowed', rule: 'Passed all rules', status: 200 },
   { id: 'req_8f2a03', time: '14:32:54', ip: '192.0.2.156', country: 'Netherlands', code: 'NL', method: 'GET', path: '/admin/config.php', action: 'Blocked', rule: 'Path traversal', status: 403 },
