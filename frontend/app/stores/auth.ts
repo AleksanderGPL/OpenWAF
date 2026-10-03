@@ -1,3 +1,5 @@
+import { translateApiMessage } from '~/utils/i18n'
+
 export type AuthUser = {
   id: number
   username: string
@@ -54,7 +56,7 @@ export const useAuthStore = defineStore('auth', () => {
   function authErrorMessage(error: unknown, fallback: string) {
     if (typeof error === 'object' && error && 'data' in error) {
       const message = (error as { data?: { message?: string } }).data?.message
-      if (message) return message
+      if (message) return translateApiMessage(message)
     }
     return fallback
   }

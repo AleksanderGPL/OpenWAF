@@ -4,12 +4,13 @@ import { attacks, hourlyTraffic, hourlyBlocked } from '~/data/dashboard'
 import { formatDashboardNumber } from '~/utils/dashboard'
 
 export function useDashboardMetrics(range: MaybeRefOrGetter<DashboardRange>) {
+  const { t } = useI18n()
   const multiplier = computed(() => toValue(range) === '7d' ? 7 : toValue(range) === '30d' ? 30 : 1)
   const totalRequests = computed(() => hourlyTraffic.reduce((sum, value) => sum + value, 0) * multiplier.value)
   const totalBlocked = computed(() => attacks.reduce((sum, attack) => sum + attack.value, 0) * multiplier.value)
   const blockRate = computed(() => (totalBlocked.value / totalRequests.value * 100).toFixed(2))
   const metrics = computed<DashboardMetric[]>(() => [{
-    label: 'Total requests',
+    label: t('metrics.totalRequests'),
     value: formatDashboardNumber(totalRequests.value),
     unit: '',
     icon: 'i-lucide-activity',
@@ -19,7 +20,7 @@ export function useDashboardMetrics(range: MaybeRefOrGetter<DashboardRange>) {
     trendIcon: 'i-lucide-trending-up',
     data: hourlyTraffic
   }, {
-    label: 'Blocked threats',
+    label: t('metrics.blockedThreats'),
     value: formatDashboardNumber(totalBlocked.value),
     unit: '',
     icon: 'i-lucide-shield-check',
@@ -29,7 +30,7 @@ export function useDashboardMetrics(range: MaybeRefOrGetter<DashboardRange>) {
     trendIcon: 'i-lucide-trending-down',
     data: hourlyBlocked
   }, {
-    label: 'Block rate',
+    label: t('metrics.blockRate'),
     value: blockRate.value,
     unit: '%',
     icon: 'i-lucide-ban',
@@ -39,7 +40,7 @@ export function useDashboardMetrics(range: MaybeRefOrGetter<DashboardRange>) {
     trendIcon: 'i-lucide-trending-down',
     data: [9, 7, 8, 5, 6, 4, 5, 3, 4, 2]
   }, {
-    label: 'Average latency',
+    label: t('metrics.averageLatency'),
     value: '24',
     unit: 'ms',
     icon: 'i-lucide-zap',

@@ -2,17 +2,18 @@
 import type { NavigationMenuItem } from '@nuxt/ui'
 import type { DashboardSection } from '~/types/dashboard'
 const props = defineProps<{
-  activeSection: DashboardSection | 'settings'
+  activeSection: DashboardSection | 'settings' | 'services'
 }>()
 const open = defineModel<boolean>('open', {
   default: false
 })
 const emit = defineEmits<{
-  navigate: [section: DashboardSection, label: string]
+  navigate: [section: DashboardSection]
 }>()
+const { t } = useI18n()
 const auth = useAuthStore()
 const { user } = storeToRefs(auth)
-const displayName = computed(() => user.value?.name || user.value?.username || 'Account')
+const displayName = computed(() => user.value?.name || user.value?.username || t('common.account'))
 const initials = computed(() => displayName.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 2).toUpperCase() || 'OW')
 
 async function onSignOut() {
@@ -20,21 +21,25 @@ async function onSignOut() {
   await navigateTo('/auth')
 }
 const sections: {
-  label: string
   icon: string
   target: DashboardSection
 }[] = [{
-  label: 'Overview',
   icon: 'i-lucide-layout-dashboard',
   target: 'overview'
 }]
 const navigationItems = computed<NavigationMenuItem[]>(() => [...sections.map(item => ({
-  label: item.label,
+  label: t('nav.overview'),
   icon: item.icon,
   active: props.activeSection === item.target,
-  onSelect: () => emit('navigate', item.target, item.label)
+  onSelect: () => emit('navigate', item.target)
 })), {
-  label: 'Settings',
+  label: t('nav.services'),
+  icon: 'i-lucide-server',
+  to: '/dash/services',
+  active: props.activeSection === 'services',
+  onSelect: () => { open.value = false }
+}, {
+  label: t('nav.settings'),
   icon: 'i-lucide-settings',
   to: '/dash/settings',
   active: props.activeSection === 'settings',
@@ -63,13 +68,13 @@ const navigationItems = computed<NavigationMenuItem[]>(() => [...sections.map(it
         :square="collapsed"
         class="font-bold"
         :class="collapsed ? 'mx-auto' : 'w-full justify-start'"
-        aria-label="OpenWAF overview"
-        @click="emit('navigate', 'overview', 'Overview')"
+        :aria-label="t('nav.overviewAria')"
+        @click="emit('navigate', 'overview')"
       />
     </template>
     <template #default="{ collapsed }">
       <p v-if="!collapsed" class="px-2 pt-2 text-xs font-medium tracking-wider text-dimmed">
-        WORKSPACE
+        {{ t('nav.workspace') }}
       </p>
       <UNavigationMenu
         :items="navigationItems"
@@ -94,7 +99,7 @@ const navigationItems = computed<NavigationMenuItem[]>(() => [...sections.map(it
           color="neutral"
           variant="ghost"
           square
-          aria-label="Sign out"
+          :aria-label="t('nav.signOut')"
           @click="onSignOut"
         />
       </div>

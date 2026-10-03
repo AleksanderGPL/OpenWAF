@@ -2,7 +2,7 @@ import type { EChartsOption } from 'echarts'
 import type { TrafficPoint, TrafficView, ThreatCategory } from '~/types/dashboard'
 import { formatBytes, formatDashboardNumber } from '~/utils/dashboard'
 
-export function createTrafficChartOption(points: readonly TrafficPoint[], trafficView: TrafficView): EChartsOption {
+export function createTrafficChartOption(points: readonly TrafficPoint[], trafficView: TrafficView, labels: { totalRequests: string, blockedRequests: string, requestBody: string, responseBody: string }): EChartsOption {
   const axisStyle = {
     color: '#94a3b8',
     fontSize: 11,
@@ -59,7 +59,7 @@ export function createTrafficChartOption(points: readonly TrafficPoint[], traffi
       }
     },
     series: [{
-      name: bytes ? 'Request body' : 'Total requests',
+      name: bytes ? labels.requestBody : labels.totalRequests,
       type: 'line',
       smooth: 0.35,
       symbol: 'none',
@@ -84,7 +84,7 @@ export function createTrafficChartOption(points: readonly TrafficPoint[], traffi
         }
       }
     }, {
-      name: bytes ? 'Response body' : 'Blocked requests',
+      name: bytes ? labels.responseBody : labels.blockedRequests,
       type: 'line',
       smooth: 0.35,
       symbol: 'none',

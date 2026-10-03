@@ -1,6 +1,19 @@
 <script setup lang="ts">
 import * as z from 'zod'
 
+const { t, locale, locales, setLocale } = useI18n()
+const selectedLocale = computed({
+  get: () => locale.value,
+  set: (code: string) => {
+    setLocale(code as typeof locale.value)
+  }
+})
+const localeOptions = computed(() => locales.value.map(item => ({
+  code: item.code,
+  name: item.name ?? item.code,
+  dir: item.dir === 'rtl' ? 'rtl' as const : 'ltr' as const,
+  messages: {}
+})))
 const auth = useAuthStore()
 const { user } = storeToRefs(auth)
 const { data: setup, error: setupError } = await useFetch<{ completed: boolean }>('/api/auth/setup')
@@ -15,45 +28,45 @@ if (user.value) {
   await navigateTo('/dash/overview')
 }
 
-const registerFields = [{
+const registerFields = computed(() => [{
   name: 'username',
   type: 'text' as const,
-  label: 'Username',
+  label: t('auth.username'),
   size: 'lg' as const,
   autocomplete: 'username',
   defaultValue: ''
 }, {
   name: 'password',
   type: 'password' as const,
-  label: 'Password',
+  label: t('auth.password'),
   size: 'lg' as const,
   autocomplete: 'new-password',
   defaultValue: ''
-}]
+}])
 
-const loginFields = [{
+const loginFields = computed(() => [{
   name: 'username',
   type: 'text' as const,
-  label: 'Username',
+  label: t('auth.username'),
   size: 'lg' as const,
   autocomplete: 'username',
   defaultValue: savedUsername
 }, {
   name: 'password',
   type: 'password' as const,
-  label: 'Password',
+  label: t('auth.password'),
   size: 'lg' as const,
   autocomplete: 'current-password',
   defaultValue: ''
 }, {
   name: 'remember',
   type: 'checkbox' as const,
-  label: 'Save username on this device',
+  label: t('auth.rememberUsername'),
   color: 'neutral' as const,
   defaultValue: true,
   class: 'mt-1',
   ui: { label: 'font-normal' }
-}]
+}])
 
 const formUi = {
   header: 'mb-2',
@@ -61,18 +74,18 @@ const formUi = {
   footer: 'text-center text-sm text-muted'
 }
 
-const registerSchema = z.object({
-  username: z.string().trim().min(1, 'Enter a username').max(255, 'Username must be 255 characters or fewer'),
-  password: z.string().min(8, 'Password must be at least 8 characters').max(1024, 'Password is too long')
-})
+const registerSchema = computed(() => z.object({
+  username: z.string().trim().min(1, t('auth.usernameRequired')).max(255, t('auth.usernameLength')),
+  password: z.string().min(8, t('auth.passwordLength')).max(1024, t('auth.passwordTooLong'))
+}))
 
-const loginSchema = z.object({
-  username: z.string().trim().min(1, 'Enter your username').max(255, 'Username must be 255 characters or fewer'),
-  password: z.string().min(1, 'Enter your password').max(1024, 'Password is too long'),
+const loginSchema = computed(() => z.object({
+  username: z.string().trim().min(1, t('auth.usernameSignInRequired')).max(255, t('auth.usernameLength')),
+  password: z.string().min(1, t('auth.passwordRequired')).max(1024, t('auth.passwordTooLong')),
   remember: z.boolean()
-})
+}))
 
-async function onRegister(event: { data: z.output<typeof registerSchema> }) {
+async function onRegister(event: { data: { username: string, password: string } }) {
   errorMessage.value = ''
   pending.value = true
   const username = event.data.username
@@ -83,13 +96,13 @@ async function onRegister(event: { data: z.output<typeof registerSchema> }) {
     auth.rememberUsername(username)
     await navigateTo('/dash/overview')
   } catch (error) {
-    errorMessage.value = auth.authErrorMessage(error, registered.value ? 'Account created, but sign-in failed' : 'Could not create the account')
+    errorMessage.value = auth.authErrorMessage(error, registered.value ? t('auth.createdButSignInFailed') : t('auth.createFailed'))
   } finally {
     pending.value = false
   }
 }
 
-async function onLogin(event: { data: z.output<typeof loginSchema> }) {
+async function onLogin(event: { data: { username: string, password: string, remember: boolean } }) {
   errorMessage.value = ''
   pending.value = true
   try {
@@ -98,7 +111,7 @@ async function onLogin(event: { data: z.output<typeof loginSchema> }) {
     auth.rememberUsername(event.data.remember ? username : null)
     await navigateTo('/dash/overview')
   } catch (error) {
-    errorMessage.value = auth.authErrorMessage(error, 'Could not sign in')
+    errorMessage.value = auth.authErrorMessage(error, t('auth.signInFailed'))
   } finally {
     pending.value = false
   }
@@ -107,15 +120,18 @@ async function onLogin(event: { data: z.output<typeof loginSchema> }) {
 
 <template>
   <AuthFrame>
+    <div class="mb-6 flex justify-end">
+      <ULocaleSelect v-model="selectedLocale" :locales="localeOptions" class="w-40" :aria-label="t('settings.language')" />
+    </div>
     <div v-if="setupError" class="space-y-4 text-center">
       <h1 class="text-3xl font-bold tracking-tight text-highlighted">
-        Welcome
+        {{ t('auth.welcome') }}
       </h1>
       <UAlert
         color="error"
         variant="subtle"
-        title="Could not reach the server"
-        description="Check that the API is running, then reload this page."
+        :title="t('auth.serverUnreachable')"
+        :description="t('auth.serverUnreachableDescription')"
       />
     </div>
 
@@ -123,7 +139,7 @@ async function onLogin(event: { data: z.output<typeof loginSchema> }) {
       v-else-if="!registered"
       :fields="registerFields"
       :schema="registerSchema"
-      :submit="{ label: 'Create account', size: 'xl', class: 'h-12 font-semibold' }"
+      :submit="{ label: t('auth.createAccount'), size: 'xl', class: 'h-12 font-semibold' }"
       :loading="pending"
       novalidate
       :ui="formUi"
@@ -131,10 +147,10 @@ async function onLogin(event: { data: z.output<typeof loginSchema> }) {
     >
       <template #header>
         <h1 class="text-center text-3xl font-bold tracking-tight text-highlighted">
-          Welcome
+          {{ t('auth.welcome') }}
         </h1>
         <p class="mt-2 text-center text-muted">
-          Create the administrator account for this OpenWAF instance.
+          {{ t('auth.createAdmin') }}
         </p>
       </template>
 
@@ -152,7 +168,7 @@ async function onLogin(event: { data: z.output<typeof loginSchema> }) {
       v-else
       :fields="loginFields"
       :schema="loginSchema"
-      :submit="{ label: 'Sign in', size: 'xl', class: 'h-12 font-semibold' }"
+      :submit="{ label: t('auth.signIn'), size: 'xl', class: 'h-12 font-semibold' }"
       :loading="pending"
       novalidate
       :ui="formUi"
@@ -160,7 +176,7 @@ async function onLogin(event: { data: z.output<typeof loginSchema> }) {
     >
       <template #header>
         <h1 class="text-center text-3xl font-bold tracking-tight text-highlighted">
-          Sign in to OpenWAF
+          {{ t('auth.signInTitle') }}
         </h1>
       </template>
 

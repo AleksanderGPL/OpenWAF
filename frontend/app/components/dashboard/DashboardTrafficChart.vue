@@ -4,15 +4,21 @@ const props = defineProps<{
   range: DashboardRange
   points: TrafficPoint[]
 }>()
+const { t } = useI18n()
 const trafficView = ref<TrafficView>('requests')
-const trafficTabs = [{
-  label: 'Requests',
-  value: 'requests'
+const trafficTabs = computed(() => [{
+  label: t('traffic.requests'),
+  value: 'requests' as const
 }, {
-  label: 'Bandwidth',
-  value: 'bandwidth'
-}]
-const trafficOption = computed(() => createTrafficChartOption(props.points, trafficView.value))
+  label: t('traffic.bandwidth'),
+  value: 'bandwidth' as const
+}])
+const trafficOption = computed(() => createTrafficChartOption(props.points, trafficView.value, {
+  totalRequests: t('metrics.totalRequests'),
+  blockedRequests: t('traffic.blockedRequests'),
+  requestBody: t('traffic.requestBody'),
+  responseBody: t('traffic.responseBody')
+}))
 </script>
 
 <template>
@@ -21,10 +27,10 @@ const trafficOption = computed(() => createTrafficChartOption(props.points, traf
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 class="text-sm font-semibold text-highlighted">
-            Traffic overview
+            {{ t('traffic.title') }}
           </h2>
           <p class="mt-1 text-xs text-muted">
-            Request activity across your applications
+            {{ t('traffic.description') }}
           </p>
         </div>
         <UTabs
@@ -32,25 +38,25 @@ const trafficOption = computed(() => createTrafficChartOption(props.points, traf
           :items="trafficTabs"
           :content="false"
           size="sm"
-          aria-label="Traffic chart metric"
+          :aria-label="t('traffic.metric')"
         />
       </div>
     </template>
     <div class="mb-2 flex flex-wrap gap-5 text-xs text-muted">
       <span class="flex items-center gap-2">
         <span class="size-2 rounded-full bg-indigo-500" />
-        {{ trafficView === 'requests' ? 'Total requests' : 'Request body' }}
+        {{ trafficView === 'requests' ? t('metrics.totalRequests') : t('traffic.requestBody') }}
       </span>
       <span class="flex items-center gap-2">
         <span class="size-2 rounded-full bg-amber-500" />
-        {{ trafficView === 'requests' ? 'Blocked requests' : 'Response body' }}
+        {{ trafficView === 'requests' ? t('traffic.blockedRequests') : t('traffic.responseBody') }}
       </span>
     </div>
     <VChart
       class="traffic-chart"
       :option="trafficOption"
       autoresize
-      :aria-label="`Traffic ${trafficView} for ${range}`"
+      :aria-label="t('traffic.chart', { view: trafficView === 'requests' ? t('traffic.requests') : t('traffic.bandwidth'), range: t(range === '24h' ? 'overview.rangeShort24h' : range === '7d' ? 'overview.rangeShort7d' : 'overview.rangeShort30d') })"
     />
   </UCard>
 </template>

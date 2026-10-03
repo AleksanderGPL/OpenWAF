@@ -3,6 +3,7 @@ import type { RequestLog } from '~/types/dashboard'
 const request = defineModel<RequestLog | null>({
   required: true
 })
+const { t } = useI18n()
 const requestModalOpen = computed({
   get: () => request.value !== null,
   set: (open: boolean) => {
@@ -14,17 +15,17 @@ const requestModalOpen = computed({
 <template>
   <UModal
     v-model:open="requestModalOpen"
-    title="Request details"
-    description="Recorded by the proxy."
+    :title="t('request.title')"
+    :description="t('request.description')"
     :ui="{ footer: 'justify-end' }"
   >
     <template #body>
       <template v-if="request">
-        <UBadge :label="request.action" :color="getRequestActionColor(request.action)" variant="subtle" />
+        <UBadge :label="t(request.action === 'Blocked' ? 'logs.blocked' : 'logs.allowed')" :color="getRequestActionColor(request.action)" variant="subtle" />
         <dl class="mt-5 divide-y divide-default text-sm">
           <div class="flex justify-between gap-4 py-3">
             <dt class="text-muted">
-              Request ID
+              {{ t('request.id') }}
             </dt>
             <dd class="font-mono text-xs">
               {{ request.id }}
@@ -32,7 +33,7 @@ const requestModalOpen = computed({
           </div>
           <div class="flex justify-between gap-4 py-3">
             <dt class="text-muted">
-              Time
+              {{ t('request.time') }}
             </dt>
             <dd>
               {{ request.time }}
@@ -40,7 +41,7 @@ const requestModalOpen = computed({
           </div>
           <div class="flex justify-between gap-4 py-3">
             <dt class="text-muted">
-              Source IP
+              {{ t('request.sourceIp') }}
             </dt>
             <dd class="font-mono text-xs">
               {{ request.ip }}
@@ -48,15 +49,15 @@ const requestModalOpen = computed({
           </div>
           <div class="flex justify-between gap-4 py-3">
             <dt class="text-muted">
-              Location
+              {{ t('request.location') }}
             </dt>
             <dd>
-              {{ request.code === '—' ? 'Unknown' : request.code }}
+              {{ request.code === '—' ? t('common.unknown') : request.code }}
             </dd>
           </div>
           <div class="flex justify-between gap-4 py-3">
             <dt class="text-muted">
-              Request
+              {{ t('request.request') }}
             </dt>
             <dd class="max-w-2/3 break-all text-right font-mono text-xs">
               {{ request.method }}
@@ -65,7 +66,7 @@ const requestModalOpen = computed({
           </div>
           <div class="flex justify-between gap-4 py-3">
             <dt class="text-muted">
-              Matched rule
+              {{ t('request.rule') }}
             </dt>
             <dd>
               {{ request.rule }}
@@ -73,7 +74,7 @@ const requestModalOpen = computed({
           </div>
           <div class="flex justify-between gap-4 py-3">
             <dt class="text-muted">
-              Hostname
+              {{ t('request.hostname') }}
             </dt>
             <dd class="font-mono text-xs">
               {{ request.hostname || '—' }}
@@ -81,23 +82,23 @@ const requestModalOpen = computed({
           </div>
           <div class="flex justify-between gap-4 py-3">
             <dt class="text-muted">
-              Duration
+              {{ t('request.duration') }}
             </dt>
             <dd>
-              {{ formatLatency(request.durationMs) }} ms
+              {{ t('request.durationValue', { value: formatLatency(request.durationMs) }) }}
             </dd>
           </div>
           <div class="flex justify-between gap-4 py-3">
             <dt class="text-muted">
-              Body size
+              {{ t('request.bodySize') }}
             </dt>
             <dd>
-              {{ formatBytes(request.requestBytes) }} in · {{ formatBytes(request.responseBytes) }} out
+              {{ t('request.bodySizeValue', { inbound: formatBytes(request.requestBytes), outbound: formatBytes(request.responseBytes) }) }}
             </dd>
           </div>
           <div class="flex justify-between gap-4 py-3">
             <dt class="text-muted">
-              Response status
+              {{ t('request.status') }}
             </dt>
             <dd>
               {{ request.status }}
@@ -107,7 +108,7 @@ const requestModalOpen = computed({
       </template>
     </template>
     <template #footer>
-      <UButton label="Done" @click="requestModalOpen = false" />
+      <UButton :label="t('common.done')" @click="requestModalOpen = false" />
     </template>
   </UModal>
 </template>

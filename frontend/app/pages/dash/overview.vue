@@ -3,22 +3,23 @@ import type { DashboardRange } from '~/types/dashboard'
 definePageMeta({
   layout: 'dashboard'
 })
+const { t } = useI18n()
 useSeoMeta({
-  title: 'Overview · OpenWAF',
-  description: 'OpenWAF request statistics, traffic, threats, and request logs.'
+  title: () => t('seo.overviewTitle'),
+  description: () => t('seo.overviewDescription')
 })
 const range = ref<DashboardRange>('24h')
-const ranges = [{
-  value: '24h',
-  label: 'Last 24 hours'
+const ranges = computed(() => [{
+  value: '24h' as const,
+  label: t('overview.range24h')
 }, {
-  value: '7d',
-  label: 'Last 7 days'
+  value: '7d' as const,
+  label: t('overview.range7d')
 }, {
-  value: '30d',
-  label: 'Last 30 days'
-}]
-const rangeLabel = computed(() => ranges.find(item => item.value === range.value)?.label ?? '')
+  value: '30d' as const,
+  label: t('overview.range30d')
+}])
+const rangeLabel = computed(() => ranges.value.find(item => item.value === range.value)?.label ?? '')
 const {
   summary,
   points,
@@ -39,14 +40,14 @@ async function refresh() {
   await refreshStats()
   if (loadError.value) {
     toast.add({
-      title: 'Could not refresh stats',
+      title: t('overview.refreshFailed'),
       icon: 'i-lucide-circle-alert',
       color: 'error'
     })
     return
   }
   toast.add({
-    title: 'Stats refreshed',
+    title: t('overview.refreshed'),
     icon: 'i-lucide-circle-check',
     color: 'success'
   })
@@ -58,15 +59,13 @@ async function refresh() {
     <div class="flex flex-wrap items-center justify-between gap-4">
       <div class="flex items-center gap-3">
         <UBadge
-          :label="loadError ? 'Unavailable' : 'Live'"
+          :label="loadError ? t('overview.unavailable') : t('overview.live')"
           :color="loadError ? 'error' : 'success'"
           variant="soft"
           icon="i-lucide-shield-check"
         />
         <p v-if="summary" class="text-sm text-muted">
-          {{ formatDashboardNumber(summary.blockedRequests) }} blocked
-          ·
-          {{ formatDashboardNumber(summary.totalRequests) }} requests
+          {{ t('overview.summary', { blocked: formatDashboardNumber(summary.blockedRequests), requests: formatDashboardNumber(summary.totalRequests) }) }}
         </p>
       </div>
       <div class="flex items-center gap-2">
@@ -75,15 +74,15 @@ async function refresh() {
           :items="ranges"
           value-key="value"
           icon="i-lucide-clock"
-          aria-label="Dashboard time range"
+          :aria-label="t('overview.timeRange')"
           class="w-44"
         />
-        <UTooltip text="Refresh stats">
+        <UTooltip :text="t('overview.refresh')">
           <UButton
             icon="i-lucide-refresh-cw"
             color="neutral"
             variant="outline"
-            aria-label="Refresh stats"
+            :aria-label="t('overview.refresh')"
             @click="refresh"
           />
         </UTooltip>
@@ -93,8 +92,8 @@ async function refresh() {
       v-if="loadError"
       color="error"
       variant="subtle"
-      title="Could not load stats"
-      description="Request statistics are unavailable. Try refreshing."
+      :title="t('overview.loadFailed')"
+      :description="t('overview.loadFailedDescription')"
     />
     <DashboardMetrics :metrics="metrics" />
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
@@ -106,16 +105,16 @@ async function refresh() {
     <footer class="flex flex-wrap items-center justify-between gap-2 pb-2 text-xs text-dimmed">
       <span class="flex items-center gap-2">
         <UIcon name="i-lucide-circle-check" class="size-3.5 text-success" />
-        {{ loadError ? 'Status unavailable' : 'Live' }}
+        {{ loadError ? t('overview.statusUnavailable') : t('overview.live') }}
         <template v-if="refreshedAt">
-          · Updated {{ refreshedAt }}
+          {{ t('overview.updated', { time: refreshedAt }) }}
         </template>
         <template v-if="summary && summary.collectionFailures > 0">
-          · {{ formatDashboardNumber(summary.collectionFailures) }} log writes failed
+          {{ t(`overview.logWritesFailed.${pluralForm(summary.collectionFailures)}`, { count: formatDashboardNumber(summary.collectionFailures) }) }}
         </template>
       </span>
       <span v-if="summary">
-        Logs kept {{ summary.logRetentionDays }} days
+        {{ t('overview.logsKept', { days: summary.logRetentionDays }) }}
       </span>
     </footer>
   </main>

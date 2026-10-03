@@ -1,6 +1,7 @@
 import type { RequestLog } from '~/types/dashboard'
 export function serializeRequestLogs(logs: readonly RequestLog[]): string {
-  const headers = ['Request ID', 'Time', 'IP address', 'Country', 'Method', 'Path', 'Action', 'Rule', 'Status']
+  const { t } = useNuxtApp().$i18n
+  const headers = [t('logs.csv.id'), t('logs.csv.time'), t('logs.csv.ip'), t('logs.csv.country'), t('logs.csv.method'), t('logs.csv.path'), t('logs.csv.action'), t('logs.csv.rule'), t('logs.csv.status')]
   const rows = logs.map(log => [log.id, log.time, log.ip, log.country, log.method, log.path, log.action, log.rule, log.status])
   return [headers, ...rows].map(row => row.map(value => '"' + String(value).replaceAll('"', '""') + '"').join(',')).join('\r\n')
 }

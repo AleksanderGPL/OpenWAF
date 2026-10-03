@@ -3,6 +3,7 @@ import type { TableColumn } from '@nuxt/ui'
 import type { DashboardRange, RequestFilter, RequestLog } from '~/types/dashboard'
 import type { LogPage } from '~/types/telemetry'
 import { requestLogView } from '~/utils/telemetry'
+const { t, locale } = useI18n()
 const props = defineProps<{
   range: DashboardRange
   refreshToken: number
@@ -35,7 +36,7 @@ const { data, error, refresh } = await useFetch<LogPage>('/api/logs', { query })
 watch(() => props.refreshToken, () => {
   refresh()
 })
-const visibleLogs = computed(() => (data.value?.items ?? []).map(requestLogView))
+const visibleLogs = computed(() => (data.value?.items ?? []).map(log => requestLogView(log, locale.value === 'pl' ? 'pl-PL' : 'en-GB')))
 const total = computed(() => data.value?.total ?? 0)
 const firstVisible = computed(() => total.value ? (page.value - 1) * pageSize + 1 : 0)
 const lastVisible = computed(() => Math.min(page.value * pageSize, total.value))
@@ -49,29 +50,35 @@ defineShortcuts({
     if (!selectedLog.value) searchInput.value?.inputRef?.focus()
   }
 })
-const logTabs = ['All requests', 'Blocked', 'Allowed'].map(label => ({
-  label,
-  value: label
-}))
-const columns: TableColumn<RequestLog>[] = [{
+const logTabs = computed(() => [{
+  label: t('logs.all'),
+  value: 'All requests' as const
+}, {
+  label: t('logs.blocked'),
+  value: 'Blocked' as const
+}, {
+  label: t('logs.allowed'),
+  value: 'Allowed' as const
+}])
+const columns = computed<TableColumn<RequestLog>[]>(() => [{
   accessorKey: 'time',
-  header: 'Time'
+  header: t('logs.time')
 }, {
   accessorKey: 'ip',
-  header: 'Source IP'
+  header: t('logs.sourceIp')
 }, {
   id: 'request',
-  header: 'Request'
+  header: t('logs.request')
 }, {
   accessorKey: 'action',
-  header: 'Action'
+  header: t('logs.action')
 }, {
   accessorKey: 'rule',
-  header: 'Matched rule'
+  header: t('logs.rule')
 }, {
   id: 'details',
   header: ''
-}]
+}])
 async function exportLogs() {
   try {
     const blob = await $fetch<Blob>('/api/logs/export', {
@@ -89,14 +96,14 @@ async function exportLogs() {
     link.click()
     setTimeout(() => URL.revokeObjectURL(url), 0)
     toast.add({
-      title: 'Request logs exported',
+      title: t('logs.exported'),
       icon: 'i-lucide-circle-check',
       color: 'success'
     })
   } catch (exportError) {
     const message = (exportError as { data?: { message?: string } }).data?.message
     toast.add({
-      title: message || 'Could not export logs',
+      title: message ? translateApiMessage(message) : t('logs.exportFailed'),
       icon: 'i-lucide-circle-alert',
       color: 'error'
     })
@@ -111,21 +118,21 @@ async function exportLogs() {
         <div>
           <div class="flex flex-wrap items-center gap-2">
             <h2 class="text-sm font-semibold text-highlighted">
-              Recent requests
+              {{ t('logs.title') }}
             </h2>
             <UBadge
-              :label="`${total} requests`"
+              :label="t(`logs.count.${pluralForm(total)}`, { count: total })"
               color="neutral"
               variant="subtle"
               size="sm"
             />
           </div>
           <p class="mt-1 text-xs text-muted">
-            The latest activity passing through your firewall
+            {{ t('logs.description') }}
           </p>
         </div>
         <UButton
-          label="Export logs"
+          :label="t('logs.export')"
           icon="i-lucide-download"
           color="neutral"
           variant="outline"
@@ -141,7 +148,7 @@ async function exportLogs() {
         :content="false"
         variant="link"
         size="sm"
-        aria-label="Filter request action"
+        :aria-label="t('logs.filter')"
         class="max-w-full"
       />
       <UInput
@@ -149,8 +156,8 @@ async function exportLogs() {
         v-model="search"
         icon="i-lucide-search"
         type="search"
-        placeholder="Search IP, path, or rule…"
-        aria-label="Search request logs"
+        :placeholder="t('logs.searchPlaceholder')"
+        :aria-label="t('logs.search')"
         class="w-full sm:w-64"
       >
         <template #trailing>
@@ -163,13 +170,13 @@ async function exportLogs() {
       class="mx-4 mb-4 sm:mx-6"
       color="error"
       variant="subtle"
-      title="Could not load request logs"
+      :title="t('logs.loadFailed')"
     />
     <UTable
       :data="visibleLogs"
       :columns="columns"
       :get-row-id="row => row.id"
-      empty="No requests match your filters. Try another IP, path, or rule."
+      :empty="t('logs.empty')"
       :ui="{ th: 'bg-elevated/50 text-xs', td: 'text-xs', tr: 'hover:bg-elevated/30' }"
     >
       <template #time-cell="{ row }">
@@ -208,20 +215,20 @@ async function exportLogs() {
       </template>
       <template #action-cell="{ row }">
         <UBadge
-          :label="row.original.action"
+          :label="t(row.original.action === 'Blocked' ? 'logs.blocked' : 'logs.allowed')"
           :color="getRequestActionColor(row.original.action)"
           variant="subtle"
           size="sm"
         />
       </template>
       <template #details-cell="{ row }">
-        <UTooltip text="View request details">
+        <UTooltip :text="t('logs.view')">
           <UButton
             icon="i-lucide-chevron-right"
             color="neutral"
             variant="ghost"
             size="sm"
-            :aria-label="`View request ${row.original.id}`"
+            :aria-label="t('logs.viewId', { id: row.original.id })"
             @click="selectedLog = row.original"
           />
         </UTooltip>
@@ -230,17 +237,7 @@ async function exportLogs() {
     <template #footer>
       <div class="flex flex-wrap items-center justify-between gap-3">
         <p class="text-xs text-muted">
-          Showing
-          <span class="font-medium text-highlighted">
-            {{ firstVisible }}
-            –
-            {{ lastVisible }}
-          </span>
-          of
-          <span class="font-medium text-highlighted">
-            {{ total }}
-          </span>
-          requests
+          {{ t('logs.showing', { from: firstVisible, to: lastVisible, total }) }}
         </p>
         <UPagination
           v-model:page="page"

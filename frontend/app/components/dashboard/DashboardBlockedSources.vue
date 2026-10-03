@@ -4,6 +4,7 @@ const props = defineProps<{
   sources: BlockedSource[]
   rangeLabel: string
 }>()
+const { t } = useI18n()
 const maximumRequests = computed(() => Math.max(1, ...props.sources.map(source => source.requests)))
 </script>
 
@@ -13,15 +14,14 @@ const maximumRequests = computed(() => Math.max(1, ...props.sources.map(source =
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 class="text-sm font-semibold text-highlighted">
-            Top blocked sources
+            {{ t('sources.title') }}
           </h2>
           <p class="mt-1 text-xs text-muted">
-            Repeat offenders stopped at the edge ·
-            {{ rangeLabel.toLowerCase() }}
+            {{ t('sources.description', { range: rangeLabel }) }}
           </p>
         </div>
         <UBadge
-          :label="`${sources.length} blocked IPs`"
+          :label="t(`sources.count.${pluralForm(sources.length)}`, { count: sources.length })"
           icon="i-lucide-ban"
           color="neutral"
           variant="subtle"
@@ -29,7 +29,7 @@ const maximumRequests = computed(() => Math.max(1, ...props.sources.map(source =
       </div>
     </template>
     <p v-if="sources.length === 0" class="text-sm text-muted">
-      No blocked sources in this period.
+      {{ t('sources.empty') }}
     </p>
     <div v-else class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <UCard
@@ -44,7 +44,7 @@ const maximumRequests = computed(() => Math.max(1, ...props.sources.map(source =
             {{ index + 1 }}
           </span>
           <UBadge
-            label="Blocked"
+            :label="t('logs.blocked')"
             color="error"
             variant="soft"
             size="sm"
@@ -71,14 +71,14 @@ const maximumRequests = computed(() => Math.max(1, ...props.sources.map(source =
         <p class="mb-2 text-sm font-medium text-highlighted">
           {{ formatDashboardNumber(source.requests) }}
           <span class="text-xs font-normal text-muted">
-            requests stopped
+            {{ t('sources.stopped') }}
           </span>
         </p>
         <UProgress
           :model-value="source.requests / maximumRequests * 100"
           :max="100"
           size="xs"
-          :aria-label="`Blocked request volume for ${source.ip}`"
+          :aria-label="t('sources.volume', { ip: source.ip })"
         />
       </UCard>
     </div>

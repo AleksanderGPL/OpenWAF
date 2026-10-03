@@ -5,7 +5,9 @@ const props = defineProps<{
   attacks: ThreatCategory[]
   totalBlocked: number
 }>()
+const { t } = useI18n()
 const attackOption = computed(() => createThreatChartOption(props.attacks))
+const rangeLabel = computed(() => t(props.range === '24h' ? 'overview.rangeShort24h' : props.range === '7d' ? 'overview.rangeShort7d' : 'overview.rangeShort30d'))
 const threatTotal = computed(() => props.attacks.reduce((sum, attack) => sum + attack.value, 0))
 </script>
 
@@ -15,13 +17,13 @@ const threatTotal = computed(() => props.attacks.reduce((sum, attack) => sum + a
       <div class="flex items-center justify-between">
         <div>
           <h2 class="text-sm font-semibold text-highlighted">
-            Threat breakdown
+            {{ t('threats.title') }}
           </h2>
           <p class="mt-1 text-xs text-muted">
-            What we're keeping out
+            {{ t('threats.description') }}
           </p>
         </div>
-        <UBadge :label="range" color="neutral" variant="subtle" />
+        <UBadge :label="rangeLabel" color="neutral" variant="subtle" />
       </div>
     </template>
     <div class="relative h-44">
@@ -29,14 +31,14 @@ const threatTotal = computed(() => props.attacks.reduce((sum, attack) => sum + a
         class="threat-chart"
         :option="attackOption"
         autoresize
-        aria-label="Blocked threats by attack type"
+        :aria-label="t('threats.chart')"
       />
       <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
         <strong class="text-2xl font-semibold tracking-tight text-highlighted">
           {{ formatDashboardNumber(totalBlocked) }}
         </strong>
         <span class="mt-1 text-xs text-muted">
-          threats blocked
+          {{ t('threats.blocked') }}
         </span>
       </div>
     </div>

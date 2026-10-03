@@ -3,10 +3,11 @@ import type { DashboardMetric } from '~/types/dashboard'
 defineProps<{
   metrics: DashboardMetric[]
 }>()
+const { t } = useI18n()
 </script>
 
 <template>
-  <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Security metrics">
+  <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" :aria-label="t('metrics.aria')">
     <UCard v-for="metric in metrics" :key="metric.label" :ui="{ body: 'p-5 sm:p-5' }">
       <div class="flex items-center justify-between gap-3">
         <p class="text-sm text-muted">
@@ -32,14 +33,14 @@ defineProps<{
             size="sm"
           />
           <p class="mt-1.5 text-xs text-dimmed">
-            vs. previous period
+            {{ t('metrics.previousPeriod') }}
           </p>
         </div>
         <VChart
           class="metric-sparkline"
           :option="createSparklineOption(metric.data, metric.color)"
           autoresize
-          :aria-label="`${metric.label} trend`"
+          :aria-label="t('metrics.trend', { label: metric.label })"
         />
       </div>
     </UCard>

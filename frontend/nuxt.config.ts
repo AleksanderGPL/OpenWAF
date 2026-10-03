@@ -13,7 +13,21 @@ export default defineNuxtConfig({
       }
     }
   },
-  modules: ['@nuxt/ui', 'nuxt-echarts', '@nuxt/icon', '@pinia/nuxt'],
+  modules: ['@nuxt/ui', 'nuxt-echarts', '@nuxt/icon', '@pinia/nuxt', '@nuxtjs/i18n'],
+  i18n: {
+    defaultLocale: 'en',
+    strategy: 'no_prefix',
+    langDir: 'locales',
+    detectBrowserLanguage: {
+      useCookie: true,
+      cookieKey: 'openwaf-locale',
+      fallbackLocale: 'en'
+    },
+    locales: [
+      { code: 'en', name: 'English', file: 'en.json' },
+      { code: 'pl', name: 'Polski', file: 'pl.json' }
+    ]
+  },
   icon: {
     provider: 'iconify'
   },
