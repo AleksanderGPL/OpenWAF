@@ -19,6 +19,7 @@ import (
 	"OpenWAF/internal/clientip"
 	"OpenWAF/internal/database"
 	"OpenWAF/internal/proxy"
+	"OpenWAF/internal/rules"
 	"OpenWAF/internal/services"
 	"OpenWAF/internal/telemetry"
 
@@ -76,9 +77,14 @@ func run() error {
 		return err
 	}
 	defer assistantService.Close()
-	proxyService := proxy.New(store, telemetryService, clientIP)
+	ruleService, err := rules.New(context.Background(), db)
+	if err != nil {
+		return err
+	}
+	defer ruleService.Close()
+	proxyService := proxy.New(store, telemetryService, clientIP, ruleService)
 	defer proxyService.Close()
-	if err := registerAPI(app, auth.NewHandler(authService, secure, rateLimitKey), services.NewHandler(services.New(store)), telemetry.NewHandler(telemetryService), assistant.NewHandler(assistantService)); err != nil {
+	if err := registerAPI(app, auth.NewHandler(authService, secure, rateLimitKey), services.NewHandler(services.New(store)), telemetry.NewHandler(telemetryService), assistant.NewHandler(assistantService), rules.NewHandler(ruleService)); err != nil {
 		return err
 	}
 

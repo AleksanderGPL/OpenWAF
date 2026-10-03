@@ -2,19 +2,20 @@ package main
 
 import (
 	"OpenWAF/internal/api"
-	"OpenWAF/internal/assistant"
 	"OpenWAF/internal/auth"
 	"OpenWAF/internal/services"
 	"OpenWAF/internal/telemetry"
 	"github.com/gofiber/fiber/v3"
 )
 
-func registerAPI(app *fiber.App, authHandler *auth.Handler, serviceHandler *services.Handler, telemetryHandler *telemetry.Handler, assistantHandlers ...*assistant.Handler) error {
+func registerAPI(app *fiber.App, authHandler *auth.Handler, serviceHandler *services.Handler, telemetryHandler *telemetry.Handler, extraHandlers ...interface {
+	Register(*api.Router, fiber.Handler)
+}) error {
 	routes := api.New(app).Group("/api")
 	authHandler.Register(routes)
 	serviceHandler.Register(routes, authHandler.RequireAuth)
 	telemetryHandler.Register(routes, authHandler.RequireAuth)
-	for _, handler := range assistantHandlers {
+	for _, handler := range extraHandlers {
 		handler.Register(routes, authHandler.RequireAuth)
 	}
 	if err := registerDocs(routes); err != nil {

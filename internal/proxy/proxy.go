@@ -13,6 +13,7 @@ import (
 
 	"OpenWAF/internal/clientip"
 	"OpenWAF/internal/domain"
+	"OpenWAF/internal/rules"
 )
 
 type Store interface {
@@ -21,20 +22,25 @@ type Store interface {
 
 type Service struct {
 	recorder Recorder
+	rules    *rules.Service
 	clientIP *clientip.Resolver
 	store    Store
 	verified *http.Transport
 	insecure *http.Transport
 }
 
-func New(store Store, recorder Recorder, clientIP *clientip.Resolver) *Service {
+func New(store Store, recorder Recorder, clientIP *clientip.Resolver, ruleServices ...*rules.Service) *Service {
 	verified := http.DefaultTransport.(*http.Transport).Clone()
 	verified.Proxy = nil
 	verified.DialContext = (&net.Dialer{Timeout: 10 * time.Second, KeepAlive: 30 * time.Second}).DialContext
 	verified.ResponseHeaderTimeout = 30 * time.Second
 	insecure := verified.Clone()
 	insecure.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	return &Service{store: store, recorder: recorder, clientIP: clientIP, verified: verified, insecure: insecure}
+	s := &Service{store: store, recorder: recorder, clientIP: clientIP, verified: verified, insecure: insecure}
+	if len(ruleServices) > 0 {
+		s.rules = ruleServices[0]
+	}
+	return s
 }
 
 func (s *Service) Close() {
@@ -99,11 +105,13 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid query string", http.StatusBadRequest)
 		return
 	}
-	for _, value := range query["block"] {
-		if value == "true" {
-			event.Action, event.RuleID, event.Reason = "blocked", "query_block", "Query block check"
-			http.Error(w, "Request blocked", http.StatusForbidden)
-			return
+	if s.rules == nil {
+		for _, value := range query["block"] {
+			if value == "true" {
+				event.Action, event.RuleID, event.Reason = "blocked", "query_block", "Query block check"
+				http.Error(w, "Request blocked", http.StatusForbidden)
+				return
+			}
 		}
 	}
 	service, err := s.store.EnabledService(r.Context(), event.Hostname)
@@ -119,6 +127,23 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	event.ServiceID = &service.ID
+	if s.rules != nil {
+		controller := http.NewResponseController(w)
+		_ = controller.SetReadDeadline(time.Now().Add(30 * time.Second))
+		status, cleanup, inspectErr := s.rules.Inspect(r, service.ID, ip, &event)
+		_ = controller.SetReadDeadline(time.Time{})
+		defer cleanup()
+		if inspectErr != nil {
+			log.Printf("WAF processing failed for service %d", service.ID)
+			if status == 0 {
+				status = http.StatusInternalServerError
+			}
+		}
+		if status != 0 {
+			http.Error(w, "Request rejected by security policy", status)
+			return
+		}
+	}
 	target, err := domain.UpstreamURL(service.UpstreamURL)
 	if err != nil {
 		event.ErrorCategory = "upstream_configuration"

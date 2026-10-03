@@ -43,7 +43,7 @@ func Open(path string) (*gorm.DB, error) {
 		return nil, err
 	}
 	sqlDB.SetMaxOpenConns(1)
-	if err := db.AutoMigrate(&domain.User{}, &domain.UserSession{}, &domain.Service{}, &domain.RequestLog{}, &domain.Settings{}, &domain.AssistantConversation{}, &domain.AssistantMessage{}); err != nil {
+	if err := db.AutoMigrate(&domain.User{}, &domain.UserSession{}, &domain.Service{}, &domain.RequestLog{}, &domain.Settings{}, &domain.AssistantConversation{}, &domain.AssistantMessage{}, &domain.Rule{}, &domain.RulePolicy{}); err != nil {
 		sqlDB.Close()
 		return nil, fmt.Errorf("migrate database: %w", err)
 	}
