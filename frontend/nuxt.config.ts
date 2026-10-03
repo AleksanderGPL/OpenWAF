@@ -11,5 +11,7 @@ export default defineNuxtConfig({
         changeOrigin: true
       }
     }
-  }
+  },
+  modules: ['@nuxt/ui'],
+  css: ['~/assets/css/main.css']
 })
