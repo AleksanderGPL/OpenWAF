@@ -15,6 +15,17 @@ frontend assets, so no Nuxt build is needed. Ctrl-C stops both servers; if eithe
 server exits, the other is stopped too. Restart `make dev` after Go changes.
 You can also run `node scripts/dev.mjs` directly.
 
+Populate the configured database with demo services, policies, rules, and 6,000
+request logs spanning the last 30 days:
+
+```sh
+make seed
+```
+
+The seed command uses `DATABASE_PATH` from `.env` or the environment, matching
+the server; it defaults to `data/openwaf.db`. It replaces the generated demo
+logs, rules, and policies for the `*.demo.test` services each time it runs.
+
 Build and run production:
 
 ```sh
