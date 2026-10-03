@@ -43,9 +43,17 @@ func Open(path string) (*gorm.DB, error) {
 		return nil, err
 	}
 	sqlDB.SetMaxOpenConns(1)
-	if err := db.AutoMigrate(&domain.User{}, &domain.UserSession{}, &domain.Service{}, &domain.RequestLog{}, &domain.Settings{}, &domain.AssistantConversation{}, &domain.AssistantMessage{}, &domain.Rule{}, &domain.RulePolicy{}); err != nil {
+	if err := prepareInvestigationMigration(db); err != nil {
+		sqlDB.Close()
+		return nil, fmt.Errorf("migrate investigations: %w", err)
+	}
+	if err := db.AutoMigrate(&domain.User{}, &domain.UserSession{}, &domain.Service{}, &domain.RequestLog{}, &domain.Settings{}, &domain.AssistantConversation{}, &domain.AssistantMessage{}, &domain.Rule{}, &domain.RulePolicy{}, &domain.AnomalySettings{}, &domain.DetectorCursor{}, &domain.TrafficMinute{}, &domain.Investigation{}, &domain.InvestigationRun{}, &domain.InvestigationRead{}, &domain.InvestigationEvent{}, &domain.InvestigationFollowUp{}); err != nil {
 		sqlDB.Close()
 		return nil, fmt.Errorf("migrate database: %w", err)
+	}
+	if err := migrateInvestigationResults(db); err != nil {
+		sqlDB.Close()
+		return nil, fmt.Errorf("migrate investigation results: %w", err)
 	}
 	if err := db.Where(domain.Settings{ID: 1}).Attrs(domain.Settings{LogRetentionDays: 30}).FirstOrCreate(&domain.Settings{}).Error; err != nil {
 		sqlDB.Close()

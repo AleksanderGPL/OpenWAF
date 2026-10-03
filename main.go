@@ -18,6 +18,7 @@ import (
 	"OpenWAF/internal/auth"
 	"OpenWAF/internal/clientip"
 	"OpenWAF/internal/database"
+	"OpenWAF/internal/investigation"
 	"OpenWAF/internal/proxy"
 	"OpenWAF/internal/rules"
 	"OpenWAF/internal/services"
@@ -77,6 +78,10 @@ func run() error {
 		return err
 	}
 	defer assistantService.Close()
+	investigationService, err := investigation.New(db, assistantService, telemetryService)
+	if err != nil {
+		return err
+	}
 	ruleService, err := rules.New(context.Background(), db)
 	if err != nil {
 		return err
@@ -84,7 +89,7 @@ func run() error {
 	defer ruleService.Close()
 	proxyService := proxy.New(store, telemetryService, clientIP, ruleService)
 	defer proxyService.Close()
-	if err := registerAPI(app, auth.NewHandler(authService, secure, rateLimitKey), services.NewHandler(services.New(store)), telemetry.NewHandler(telemetryService), assistant.NewHandler(assistantService), rules.NewHandler(ruleService)); err != nil {
+	if err := registerAPI(app, auth.NewHandler(authService, secure, rateLimitKey), services.NewHandler(services.New(store)), telemetry.NewHandler(telemetryService), assistant.NewHandler(assistantService), rules.NewHandler(ruleService), investigation.NewHandler(investigationService)); err != nil {
 		return err
 	}
 
@@ -109,6 +114,9 @@ func run() error {
 	defer proxyServer.Close()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	investigationDone := make(chan struct{})
+	go func() { defer close(investigationDone); investigationService.Run(ctx) }()
+	defer func() { stop(); <-investigationDone }()
 	retentionDone := make(chan struct{})
 	go func() { defer close(retentionDone); telemetryService.RunRetention(ctx) }()
 	defer func() { stop(); <-retentionDone }()
@@ -120,6 +128,8 @@ func run() error {
 	case err = <-serverErrors:
 	case <-ctx.Done():
 	}
+	stop()
+	<-investigationDone
 	assistantService.Close()
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

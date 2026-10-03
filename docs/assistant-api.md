@@ -15,7 +15,7 @@ All routes require the existing admin session cookie. Conversations belong to th
 
 | Method | Path | Request / response |
 |---|---|---|
-| GET | `/api/assistant/status` | `{ "enabled": true, "model": "..." }` |
+| GET | `/api/assistant/status` | `{ "enabled": true }` |
 | POST | `/api/assistant/conversations` | `{ "title": "Investigate traffic spike" }` → 201 conversation object; title optional |
 | GET | `/api/assistant/conversations` | `{ "items": [...] }`, latest 100 |
 | GET | `/api/assistant/conversations/:id/messages` | `{ "items": [...] }`, oldest first |
@@ -99,3 +99,5 @@ One active run per conversation, four across the process. Each run has a three-m
 Cancelling or disconnecting stops execution; disconnect detection happens on a stream write/heartbeat failure. Cancellation persists any answer text received so far. Failed turns are excluded from later model context. This API has no event replay: after reconnecting, fetch message history to recover the saved result. Runs are not durable across process restarts. Background scheduling and anomaly detection are future additions; telemetry tools and the Eino execution service are shared foundations.
 
 Keep reverse proxy buffering disabled for these endpoints. No WAF rule changes or blocking actions are exposed to the model. Telemetry is treated as untrusted evidence; findings should cite request IDs and time windows.
+
+Linked follow-up conversations for autonomous investigations use the same message and cancellation endpoints. See [investigations-api.md](investigations-api.md). Tools also support minute-level traffic and security-match summaries including allowed requests in detection mode. Runs are limited to 24 tool calls.

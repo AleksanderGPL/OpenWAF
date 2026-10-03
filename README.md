@@ -26,3 +26,5 @@ The build generates the static Nuxt frontend and embeds it in the Go executable.
 Only `bin/openwaf` is needed to deploy; it serves the UI and API on port 3000.
 Build the whole Go package (`go build .`), rather than `go build main.go`, so the
 frontend build-tag files are included.
+
+Autonomous investigations API: [docs/investigations-api.md](docs/investigations-api.md).

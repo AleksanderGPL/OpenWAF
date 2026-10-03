@@ -208,3 +208,5 @@ func (s *Service) Logs(ctx context.Context, filter Filter) (LogPage, error) {
 func (s *Service) RequestLog(ctx context.Context, id uint64) (domain.RequestLog, error) {
 	return s.store.RequestLog(ctx, id)
 }
+
+func (s *Service) CollectionFailures() uint64 { return s.failures.Load() }

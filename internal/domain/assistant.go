@@ -4,6 +4,7 @@ import "time"
 
 // AssistantConversation belongs to the operator who created it.
 type AssistantConversation struct {
+	Context   string    `json:"-"`
 	ID        string    `gorm:"primaryKey" json:"id" required:"true"`
 	UserID    uint      `gorm:"not null;index" json:"-"`
 	Title     string    `gorm:"not null" json:"title" required:"true"`

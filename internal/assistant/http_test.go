@@ -197,7 +197,6 @@ func TestDisabledAndQueryBounds(t *testing.T) {
 	}
 }
 
-// Exercise the actual Eino model adapter and tools against a local provider.
 func TestProviderToolRoundTrip(t *testing.T) {
 	s, app, _ := fixture(t)
 	calls := 0
@@ -215,8 +214,23 @@ func TestProviderToolRoundTrip(t *testing.T) {
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			t.Error(err)
 		}
-		if len(body.Tools) != 6 {
-			t.Errorf("tool count: %d", len(body.Tools))
+		expectedTools := map[string]bool{"get_request_stats": true, "get_traffic": true, "get_threats": true, "get_blocked_sources": true, "search_requests": true, "get_request": true, "get_security_matches": true, "get_minute_traffic": true}
+		for _, raw := range body.Tools {
+			var definition struct {
+				Function struct {
+					Name string `json:"name"`
+				} `json:"function"`
+			}
+			if err := json.Unmarshal(raw, &definition); err != nil {
+				t.Error(err)
+			}
+			if !expectedTools[definition.Function.Name] {
+				t.Errorf("unexpected or duplicate tool: %s", definition.Function.Name)
+			}
+			delete(expectedTools, definition.Function.Name)
+		}
+		for name := range expectedTools {
+			t.Errorf("missing tool: %s", name)
 		}
 		calls++
 		w.Header().Set("Content-Type", "text/event-stream")
