@@ -53,6 +53,7 @@ func catalog() ([]CatalogRule, error) {
 			if m := msgRE.FindStringSubmatch(line); len(m) == 2 {
 				item.Message = m[1]
 			}
+			item.Message = catalogMessage(id, source, item.Message)
 			for _, m := range tagRE.FindAllStringSubmatch(line, -1) {
 				item.Tags = append(item.Tags, m[1])
 			}
