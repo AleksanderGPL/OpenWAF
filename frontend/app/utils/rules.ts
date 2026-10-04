@@ -19,6 +19,15 @@ export function isRuleAction(value: string): value is RuleAction {
   return (actions as readonly string[]).includes(value)
 }
 
+export function formatRuleMessage(message: string) {
+  if (!message.includes('%{')) return message
+  return message
+    .replace(/\s*\(Total Score: %\{[^}]+\}\)/g, '')
+    .replace(/%\{(?:TX\.)?([^}]+)\}/gi, (_, name: string) => name.replace(/_/g, ' ').toLowerCase())
+    .replace(/[ ]{2,}/g, ' ')
+    .trim()
+}
+
 /** Matches backend validatePolicy: only known CRS detection / patch IDs may be disabled. */
 export function canDisableCatalogRule(id: number) {
   if (id >= 911000 && id < 949000) return true

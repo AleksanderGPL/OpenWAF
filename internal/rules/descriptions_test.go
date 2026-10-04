@@ -19,6 +19,9 @@ func TestCatalogMessages(t *testing.T) {
 		if strings.HasPrefix(item.Message, "Internal ") {
 			t.Errorf("bundled rule %d needs a description: %s", item.ID, item.Message)
 		}
+		if strings.Contains(item.Message, "%{") {
+			t.Errorf("rule %d message still contains a macro: %s", item.ID, item.Message)
+		}
 	}
 	for id, description := range builtinDescriptions {
 		item, ok := byID[id]
@@ -34,6 +37,8 @@ func TestCatalogMessages(t *testing.T) {
 		901340:  "Enabling body inspection",
 		920540:  "Possible Unicode character bypass detected",
 		1001001: "Environment file exposure",
+		949110:  "Inbound Anomaly Score Exceeded",
+		949111:  "Inbound Anomaly Score Exceeded in phase 1",
 	} {
 		if got := byID[id].Message; got != want {
 			t.Errorf("rule %d upstream message: got %q, want %q", id, got, want)

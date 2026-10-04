@@ -50,12 +50,7 @@ const maximumRequests = computed(() => Math.max(1, ...props.sources.map(source =
           {{ source.ip }}
         </p>
         <p class="flex items-center gap-1.5 text-xs text-muted">
-          <UBadge
-            :label="source.code"
-            color="neutral"
-            variant="outline"
-            size="sm"
-          />
+          <CountryFlag :code="source.code" :label="source.country || source.code" />
           <span v-if="source.country">
             {{ source.country }}
           </span>

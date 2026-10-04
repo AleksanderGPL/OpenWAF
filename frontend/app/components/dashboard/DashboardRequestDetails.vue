@@ -51,8 +51,9 @@ const requestModalOpen = computed({
             <dt class="text-muted">
               {{ t('request.location') }}
             </dt>
-            <dd>
-              {{ request.code === '—' ? t('common.unknown') : request.code }}
+            <dd class="flex items-center gap-2">
+              <CountryFlag :code="request.code" :label="request.code === '—' ? t('common.unknown') : request.code" />
+              <span>{{ request.code === '—' ? t('common.unknown') : request.code }}</span>
             </dd>
           </div>
           <div class="flex justify-between gap-4 py-3">

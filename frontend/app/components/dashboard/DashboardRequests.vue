@@ -207,12 +207,7 @@ async function exportLogs() {
           {{ row.original.ip }}
         </p>
         <div class="mt-1 flex items-center gap-1.5 text-muted">
-          <UBadge
-            :label="row.original.code"
-            color="neutral"
-            variant="soft"
-            size="sm"
-          />
+          <CountryFlag :code="row.original.code" :label="row.original.country || row.original.code" />
           <span v-if="row.original.country">
             {{ row.original.country }}
           </span>

@@ -54,6 +54,17 @@ export interface SourcesResponse extends TimeWindow {
   items: BlockedSourceItem[]
 }
 
+export interface CountryRequests {
+  countryCode: string | null
+  requests: number
+}
+
+export interface CountriesResponse extends TimeWindow {
+  mode: 'all' | 'blocked'
+  totalRequests: number
+  items: CountryRequests[]
+}
+
 export interface RequestLogRecord {
   id: number
   timestamp: string

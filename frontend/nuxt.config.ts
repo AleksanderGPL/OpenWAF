@@ -34,10 +34,10 @@ export default defineNuxtConfig({
   },
   echarts: {
     renderer: 'svg',
-    charts: ['LineChart', 'BarChart', 'PieChart'],
+    charts: ['LineChart', 'BarChart', 'PieChart', 'MapChart'],
     components: ['GridComponent', 'TooltipComponent', 'LegendComponent']
   },
-  css: ['~/assets/css/main.css'],
+  css: ['~/assets/css/main.css', 'flag-icons/css/flag-icons.min.css'],
   app: {
     head: {
       link: [

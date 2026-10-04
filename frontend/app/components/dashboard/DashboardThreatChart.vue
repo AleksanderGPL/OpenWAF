@@ -33,13 +33,15 @@ const threatTotal = computed(() => props.attacks.reduce((sum, attack) => sum + a
         autoresize
         :aria-label="t('threats.chart')"
       />
-      <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-        <strong class="text-2xl font-semibold tracking-tight text-highlighted">
-          {{ formatDashboardNumber(totalBlocked) }}
-        </strong>
-        <span class="mt-1 text-xs text-muted">
-          {{ t('threats.blocked') }}
-        </span>
+      <div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+        <div class="flex w-[6.5rem] flex-col items-center text-center">
+          <strong class="text-2xl font-semibold leading-none tracking-tight text-highlighted">
+            {{ formatDashboardNumber(totalBlocked) }}
+          </strong>
+          <span class="mt-1 text-[11px] leading-tight text-muted">
+            {{ t('threats.blocked') }}
+          </span>
+        </div>
       </div>
     </div>
     <div class="mt-5 space-y-3">

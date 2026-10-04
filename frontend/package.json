@@ -16,6 +16,7 @@
     "@nuxtjs/i18n": "10.6.0",
     "@pinia/nuxt": "^1.0.2",
     "echarts": "^6.1.0",
+    "flag-icons": "^7.5.0",
     "nuxt": "^4.5.2",
     "nuxt-echarts": "1.1.0",
     "pinia": "^4.0.3",

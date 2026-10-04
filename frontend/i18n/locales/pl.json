@@ -27,7 +27,7 @@
     "logsTitle": "Dzienniki · OpenWAF",
     "logsDescription": "Wyszukuj i przeglądaj dzienniki żądań zapisane przez OpenWAF.",
     "overviewTitle": "Przegląd · OpenWAF",
-    "overviewDescription": "Statystyki żądań, ruch, zagrożenia i dzienniki OpenWAF.",
+    "overviewDescription": "Statystyki żądań, ruch według kraju, zagrożenia i dzienniki OpenWAF.",
     "settingsTitle": "Ustawienia · OpenWAF",
     "settingsDescription": "Zarządzaj przechowywaniem dziennika, wykrywaniem anomalii i preferencjami panelu.",
     "investigationsTitle": "Dochodzenia · OpenWAF",
@@ -105,6 +105,26 @@
     "responseBody": "Treść odpowiedzi",
     "blockedRequests": "Zablokowane żądania",
     "chart": "Ruch ({view}) dla zakresu {range}"
+  },
+  "geo": {
+    "title": "Ruch według kraju",
+    "description": "Lokalizacje klientów z geolokalizacji IP",
+    "all": "Wszystkie żądania",
+    "blocked": "Zablokowane",
+    "mode": "Tryb mapy żądań",
+    "chart": "Mapa świata: {mode} według kraju",
+    "empty": "Brak żądań w tym okresie.",
+    "unlocated": "Dla tych adresów IP nie udało się ustalić kraju.",
+    "unknown": "Nieznana lokalizacja",
+    "top": "Najaktywniejsze kraje",
+    "requests": "żądań",
+    "mapFailed": "Nie udało się wczytać mapy.",
+    "more": {
+      "one": "jeszcze {count} kraj",
+      "few": "jeszcze {count} kraje",
+      "many": "jeszcze {count} krajów",
+      "other": "jeszcze {count} kraju"
+    }
   },
   "threats": {
     "title": "Podział zagrożeń",

@@ -26,6 +26,10 @@ const {
   metrics,
   attacks,
   blockedSources,
+  countryItems,
+  blockedCountryItems,
+  countryTotal,
+  blockedCountryTotal,
   loadError,
   refresh: refreshStats
 } = await useDashboardStats(range)
@@ -94,6 +98,12 @@ async function refresh() {
       variant="subtle"
       :title="t('overview.loadFailed')"
       :description="t('overview.loadFailedDescription')"
+    />
+    <DashboardGeoMap
+      :countries="countryItems"
+      :blocked-countries="blockedCountryItems"
+      :total-requests="countryTotal"
+      :blocked-requests="blockedCountryTotal"
     />
     <DashboardMetrics :metrics="metrics" />
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">

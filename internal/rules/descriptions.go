@@ -2,12 +2,15 @@ package rules
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 )
 
 // builtinDescriptions supplies display text for rules without an upstream msg.
 // Descriptions follow the bundled Coraza configuration and CRS 4.25.0; they do
-// not alter engine actions or logging. Upstream messages always take precedence.
+// not alter engine actions or logging. Upstream messages take precedence.
+// Unexpanded runtime macros are removed from catalog text because a score only
+// exists on a matched transaction.
 var builtinDescriptions = map[int]string{
 	// @coraza.conf-recommended
 	200000: "Select XML request body processor",
@@ -341,12 +344,27 @@ var builtinDescriptions = map[int]string{
 	980099: "Combine inbound and outbound anomaly scores for reporting",
 }
 
+var totalScoreMacro = regexp.MustCompile(`\s*\(Total Score: %\{[^}]+\}\)`)
+var messageMacro = regexp.MustCompile(`%\{(?:TX\.)?([^}]+)\}`)
+
 func catalogMessage(id int, source, upstream string) string {
 	if upstream != "" {
-		return upstream
+		return displayMessage(upstream)
 	}
 	if description := builtinDescriptions[id]; description != "" {
 		return description
 	}
 	return fmt.Sprintf("Internal %s rule %d", strings.ToUpper(source), id)
+}
+
+func displayMessage(msg string) string {
+	if !strings.Contains(msg, "%{") {
+		return msg
+	}
+	msg = totalScoreMacro.ReplaceAllString(msg, "")
+	msg = messageMacro.ReplaceAllStringFunc(msg, func(token string) string {
+		name := messageMacro.FindStringSubmatch(token)[1]
+		return strings.ReplaceAll(strings.ToLower(name), "_", " ")
+	})
+	return strings.TrimSpace(msg)
 }

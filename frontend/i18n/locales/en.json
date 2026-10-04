@@ -27,7 +27,7 @@
     "logsTitle": "Logs · OpenWAF",
     "logsDescription": "Search and inspect request logs recorded by OpenWAF.",
     "overviewTitle": "Overview · OpenWAF",
-    "overviewDescription": "OpenWAF request statistics, traffic, threats, and request logs.",
+    "overviewDescription": "OpenWAF request statistics, traffic by country, threats, and request logs.",
     "settingsTitle": "Settings · OpenWAF",
     "settingsDescription": "Manage request log retention, anomaly detection, and your dashboard preferences.",
     "investigationsTitle": "Investigations · OpenWAF",
@@ -105,6 +105,26 @@
     "responseBody": "Response body",
     "blockedRequests": "Blocked requests",
     "chart": "Traffic {view} for {range}"
+  },
+  "geo": {
+    "title": "Traffic by country",
+    "description": "Client locations from IP geolocation",
+    "all": "All requests",
+    "blocked": "Blocked",
+    "mode": "Map request mode",
+    "chart": "World map of {mode} by country",
+    "empty": "No requests in this period.",
+    "unlocated": "No country could be resolved for these IP addresses.",
+    "unknown": "Unknown location",
+    "top": "Top countries",
+    "requests": "requests",
+    "mapFailed": "Could not load the map.",
+    "more": {
+      "one": "{count} more country",
+      "few": "{count} more countries",
+      "many": "{count} more countries",
+      "other": "{count} more countries"
+    }
   },
   "threats": {
     "title": "Threat breakdown",

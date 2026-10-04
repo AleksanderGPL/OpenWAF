@@ -89,7 +89,7 @@ SecDebugLogLevel 0
 SecResponseBodyAccess Off
 SecRequestBodyLimit %d
 SecRequestBodyLimitAction Reject
-SecAction "id:1001000,phase:1,pass,nolog,t:none,setvar:tx.blocking_paranoia_level=%d,setvar:tx.detection_paranoia_level=%d,setvar:tx.inbound_anomaly_score_threshold=%d"
+SecAction "id:1001000,phase:1,pass,nolog,t:none,setvar:tx.crs_setup_version=4250,setvar:tx.blocking_paranoia_level=%d,setvar:tx.detection_paranoia_level=%d,setvar:tx.inbound_anomaly_score_threshold=%d"
 `, mode, p.MaxBodyBytes, p.BlockingParanoiaLevel, p.DetectionParanoiaLevel, p.InboundThreshold)
 	cfg := coraza.NewWAFConfig().WithRootFS(crs.FS).
 		WithDirectivesFromFile("@coraza.conf-recommended").

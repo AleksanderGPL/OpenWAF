@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"net/netip"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -242,7 +243,7 @@ func (s *Service) Inspect(r *http.Request, service uint, ip string, event *domai
 			status = 403
 		}
 		event.RuleID = strconv.Itoa(interruption.RuleID)
-		event.Reason = s.message(interruption.RuleID)
+		event.Reason = s.matchedMessage(tx, interruption.RuleID)
 		if interruption.Status == 413 {
 			event.RuleID = "body_limit"
 			event.Reason = "Request body limit exceeded"
@@ -271,7 +272,7 @@ func (s *Service) appendMatches(tx types.Transaction, event *domain.RequestLog) 
 		} else if id >= 1001001 && id <= 1001003 {
 			source = "patch"
 		}
-		item := domain.RuleMatch{RuleID: strconv.Itoa(id), Source: source, Message: s.message(id), Severity: rule.Severity().String(), Tags: rule.Tags(), Variables: []string{}}
+		item := domain.RuleMatch{RuleID: strconv.Itoa(id), Source: source, Message: expandedMatchMessage(m, s.message(id)), Severity: rule.Severity().String(), Tags: rule.Tags(), Variables: []string{}}
 		seen := map[string]bool{}
 		for _, d := range m.MatchedDatas() {
 			name := d.Variable().Name()
@@ -294,4 +295,63 @@ func (s *Service) message(id int) string {
 		}
 	}
 	return "WAF rule matched"
+}
+
+func (s *Service) matchedMessage(tx types.Transaction, id int) string {
+	fallback := s.message(id)
+	for _, m := range tx.MatchedRules() {
+		if m.Rule().ID() != id {
+			continue
+		}
+		if msg := expandedMatchMessage(m, fallback); msg != "" {
+			return msg
+		}
+	}
+	return fallback
+}
+
+func expandedMatchMessage(m types.MatchedRule, fallback string) string {
+	msg := strings.TrimSpace(m.Message())
+	if msg == "" {
+		msg = fallback
+	}
+	values := map[string]string{}
+	for _, data := range m.MatchedDatas() {
+		value := strings.TrimSpace(data.Value())
+		if value == "" {
+			continue
+		}
+		name := strings.ToLower(data.Variable().Name())
+		if key := strings.ToLower(data.Key()); key != "" {
+			values[name+"."+key] = value
+			continue
+		}
+		values[name] = value
+	}
+	if !strings.Contains(msg, "%{") && !strings.Contains(strings.ToUpper(msg), "TX.") {
+		return msg
+	}
+	msg = messageMacro.ReplaceAllStringFunc(msg, func(token string) string {
+		if value, ok := values[strings.ToLower(messageMacro.FindStringSubmatch(token)[1])]; ok {
+			return value
+		}
+		name := strings.ToLower(messageMacro.FindStringSubmatch(token)[1])
+		if value, ok := values["tx."+name]; ok {
+			return value
+		}
+		return token
+	})
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	sort.Slice(keys, func(i, j int) bool { return len(keys[i]) > len(keys[j]) })
+	for _, key := range keys {
+		msg = strings.ReplaceAll(msg, strings.ToUpper(key), values[key])
+		msg = strings.ReplaceAll(msg, key, values[key])
+	}
+	if strings.Contains(msg, "%{") {
+		return displayMessage(msg)
+	}
+	return strings.TrimSpace(msg)
 }

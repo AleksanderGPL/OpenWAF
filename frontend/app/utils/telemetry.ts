@@ -2,6 +2,7 @@ import type { DashboardMetric, ThreatCategory, BlockedSource, RequestLog, Traffi
 import type { BlockedSourceItem, RequestLogRecord, RequestMetrics, StatsSummary, ThreatItem, TrafficResponse } from '~/types/telemetry'
 import { formatDashboardNumber, formatLatency } from '~/utils/dashboard'
 import { uiLocale } from '~/utils/i18n'
+import { formatRuleMessage } from '~/utils/rules'
 
 function formatRate(value: number) {
   return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value)
@@ -98,7 +99,7 @@ export function dashboardMetrics(summary: StatsSummary | null | undefined, point
 
 export function threatCategories(items: ThreatItem[] | null | undefined, translate: Translate): ThreatCategory[] {
   return (items ?? []).map((item, index) => ({
-    name: item.reason || item.ruleId || translate('metrics.unknownRule'),
+    name: formatRuleMessage(item.reason || item.ruleId || translate('metrics.unknownRule')),
     value: item.requests,
     color: threatColors[index % threatColors.length]!
   }))
@@ -109,7 +110,7 @@ export function blockedSourceCards(items: BlockedSourceItem[] | null | undefined
     ip: item.ip,
     country: '',
     code: item.countryCode || '—',
-    reason: item.reason || item.ruleId || translate('logs.blocked'),
+    reason: formatRuleMessage(item.reason || item.ruleId || translate('logs.blocked')),
     requests: item.requests
   }))
 }
@@ -125,7 +126,7 @@ export function requestLogView(log: RequestLogRecord, locale = uiLocale()): Requ
     method: log.method,
     path: log.path,
     action,
-    rule: log.reason || log.ruleId || '—',
+    rule: formatRuleMessage(log.reason || log.ruleId || '—'),
     status: log.status,
     hostname: log.hostname,
     durationMs: log.durationMs,

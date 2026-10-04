@@ -414,12 +414,12 @@ onBeforeUnmount(() => {
                 </div>
                 <div class="sm:col-span-2">
                   <dt class="text-xs text-muted">{{ t('request.rule') }}</dt>
-                  <dd class="mt-1">{{ item.request.reason || item.request.ruleId || '—' }}</dd>
+                  <dd class="mt-1">{{ formatRuleMessage(item.request.reason || item.request.ruleId || '—') }}</dd>
                 </div>
                 <div v-if="item.request.ruleMatches?.length" class="sm:col-span-2 space-y-2">
                   <dt class="text-xs text-muted">{{ t('investigations.ruleMatches') }}</dt>
                   <dd v-for="match in item.request.ruleMatches" :key="`${match.ruleId}-${match.message}`" class="rounded-md border border-default px-3 py-2">
-                    <p class="text-sm text-highlighted">{{ match.message || match.ruleId }}</p>
+                    <p class="text-sm text-highlighted">{{ formatRuleMessage(match.message || match.ruleId) }}</p>
                     <p class="mt-1 text-xs text-dimmed">{{ match.ruleId }}<span v-if="match.severity"> · {{ match.severity }}</span></p>
                   </dd>
                 </div>
