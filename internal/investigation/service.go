@@ -350,6 +350,11 @@ func (s *Service) execute(parent context.Context, run domain.InvestigationRun) {
 		} else if err != nil || cancelled {
 			current.Status = "failed"
 			current.Error = "Investigation could not complete"
+			if err != nil {
+				current.Error = err.Error()
+			} else if ctx.Err() != nil {
+				current.Error = ctx.Err().Error()
+			}
 			if parent.Err() != nil {
 				current.Error = "Investigation interrupted by server shutdown"
 			}
@@ -357,7 +362,7 @@ func (s *Service) execute(parent context.Context, run domain.InvestigationRun) {
 			evidence, e := observedEvidence(tx, report.RequestIDs, history)
 			if e != nil {
 				current.Status = "failed"
-				current.Error = "Investigation evidence could not be verified"
+				current.Error = fmt.Sprintf("Investigation evidence could not be verified: %v", e)
 			} else {
 				result := domain.InvestigationResult{Title: report.Title, Summary: report.Summary, Severity: report.Severity, Assessment: report.Assessment, Explanation: report.Explanation, Patterns: report.Patterns, Recommendations: report.Recommendations, Limitations: report.Limitations, Evidence: evidence, Trigger: run.Trigger, PublishedAt: now}
 				var target domain.Investigation

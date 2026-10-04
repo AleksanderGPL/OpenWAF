@@ -35,7 +35,7 @@ Each card contains:
 - `status`: `detected`, `queued`, `running`, `completed`, `failed`, `cancelled`.
 - `trigger`: explanation, detector, observed values, thresholds/baseline, time window, evidence IDs and coverage.
 - `read`, `resultAvailable`, `resultVersion`.
-- Execution timestamps, `cancellationRequested`, and a safe error when applicable.
+- Execution timestamps, `cancellationRequested`, and the execution failure reason when applicable (for example, `investigation exceeded context size limit`). Retry and failure progress events retain the same reason in `activity`.
 
 `detected` means suspicious activity was recorded but no execution has been admitted yet, for example because the hourly allowance was reached. Queued work can wait while AI is unavailable. Title/summary show the trigger before a result exists, then the latest published assessment.
 

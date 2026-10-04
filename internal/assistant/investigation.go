@@ -108,7 +108,9 @@ func (s *Service) Investigate(ctx context.Context, telemetryService *telemetry.S
 	t.runner = adk.NewRunner(ctx, adk.RunnerConfig{Agent: agent, EnableStreaming: true})
 	stop := context.AfterFunc(ctx, t.cancel)
 	defer stop()
-	s.Execute(t, send)
+	if err := s.Execute(t, send); err != nil {
+		return report, "", err
+	}
 	if t.message.Status != "completed" {
 		return report, "", fmt.Errorf("investigation did not complete")
 	}
