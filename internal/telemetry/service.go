@@ -88,12 +88,25 @@ type SourcesResponse struct {
 	Items []BlockedSource `json:"items" required:"true"`
 }
 
+type CountryRequests struct {
+	CountryCode *string `json:"countryCode" required:"true"`
+	Requests    int64   `json:"requests" required:"true"`
+}
+
+type CountriesResponse struct {
+	Window
+	Mode          string            `json:"mode" required:"true" enum:"all,blocked"`
+	TotalRequests int64             `json:"totalRequests" required:"true"`
+	Items         []CountryRequests `json:"items" required:"true"`
+}
+
 type Store interface {
 	SaveRequest(context.Context, *domain.RequestLog) error
 	Metrics(context.Context, Filter) (Metrics, error)
 	Traffic(context.Context, Filter, string) ([]Bucket, error)
 	Threats(context.Context, Filter) ([]Threat, error)
 	BlockedSources(context.Context, Filter) ([]BlockedSource, error)
+	Countries(context.Context, Filter) ([]CountryRequests, error)
 	Logs(context.Context, Filter) (LogPage, error)
 	RequestLog(context.Context, uint64) (domain.RequestLog, error)
 	Settings(context.Context) (domain.Settings, error)
@@ -216,6 +229,29 @@ func (s *Service) BlockedSources(ctx context.Context, filter Filter) (SourcesRes
 	items, err := s.store.BlockedSources(ctx, filter)
 	return SourcesResponse{Window: filter.Window, Items: items}, err
 }
+func (s *Service) Countries(ctx context.Context, filter Filter, mode string) (CountriesResponse, error) {
+	if mode == "" {
+		mode = "all"
+	}
+	switch mode {
+	case "all":
+		filter.Action = ""
+	case "blocked":
+		filter.Action = "blocked"
+	default:
+		return CountriesResponse{}, domain.ValidationError("Invalid mode: expected all or blocked")
+	}
+	items, err := s.store.Countries(ctx, filter)
+	if err != nil {
+		return CountriesResponse{}, err
+	}
+	result := CountriesResponse{Window: filter.Window, Mode: mode, Items: items}
+	for _, item := range items {
+		result.TotalRequests += item.Requests
+	}
+	return result, nil
+}
+
 func (s *Service) Logs(ctx context.Context, filter Filter) (LogPage, error) {
 	return s.store.Logs(ctx, filter)
 }

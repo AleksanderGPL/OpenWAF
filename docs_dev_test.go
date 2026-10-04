@@ -35,7 +35,7 @@ func TestDevelopmentOpenAPI(t *testing.T) {
 	if err := json.Unmarshal(body, &spec); err != nil {
 		t.Fatal(err)
 	}
-	if spec.OpenAPI != "3.0.3" || len(spec.Paths) != 14 {
+	if spec.OpenAPI != "3.0.3" || len(spec.Paths) != 15 {
 		t.Fatalf("unexpected schema: %s paths=%d", spec.OpenAPI, len(spec.Paths))
 	}
 	expected := map[string][]string{
@@ -43,7 +43,8 @@ func TestDevelopmentOpenAPI(t *testing.T) {
 		"/api/auth/sign-out": {"post"}, "/api/auth": {"get"},
 		"/api/services": {"get", "post"}, "/api/services/{id}": {"get", "put", "delete"}, "/api/stats": {"get"},
 		"/api/stats/traffic": {"get"}, "/api/stats/threats": {"get"}, "/api/stats/blocked-sources": {"get"},
-		"/api/logs": {"get"}, "/api/logs/export": {"get"}, "/api/logs/{id}": {"get"}, "/api/settings": {"get", "put"},
+		"/api/stats/countries": {"get"},
+		"/api/logs":            {"get"}, "/api/logs/export": {"get"}, "/api/logs/{id}": {"get"}, "/api/settings": {"get", "put"},
 	}
 	ids := make(map[string]bool)
 	for path, methods := range expected {
@@ -71,8 +72,9 @@ func TestDevelopmentOpenAPI(t *testing.T) {
 	}
 
 	for path, names := range map[string][]string{
-		"/api/stats": {"range", "from", "to", "serviceId"},
-		"/api/logs":  {"range", "from", "to", "serviceId", "action", "ip", "method", "status", "ruleId", "search", "page", "limit"},
+		"/api/stats":           {"range", "from", "to", "serviceId"},
+		"/api/stats/countries": {"range", "from", "to", "serviceId", "mode"},
+		"/api/logs":            {"range", "from", "to", "serviceId", "action", "ip", "method", "status", "ruleId", "search", "page", "limit"},
 	} {
 		parameters := make(map[string]bool)
 		for _, parameter := range spec.Paths[path]["get"].Parameters {
@@ -94,7 +96,7 @@ func TestDevelopmentOpenAPI(t *testing.T) {
 	if !strings.Contains(string(spec.Paths["/api/logs/export"]["get"].Responses["200"]), `"text/csv"`) {
 		t.Fatal("CSV response missing from schema")
 	}
-	for _, path := range []string{"/api/stats", "/api/stats/traffic", "/api/stats/threats", "/api/stats/blocked-sources", "/api/logs", "/api/logs/export", "/api/logs/{id}", "/api/settings"} {
+	for _, path := range []string{"/api/stats", "/api/stats/traffic", "/api/stats/threats", "/api/stats/blocked-sources", "/api/stats/countries", "/api/logs", "/api/logs/export", "/api/logs/{id}", "/api/settings"} {
 		if len(spec.Paths[path]["get"].Security) != 1 {
 			t.Fatalf("missing session security for %s", path)
 		}

@@ -99,7 +99,7 @@ func decode[T any](t *testing.T, body []byte) T {
 
 func TestTelemetryAuthorization(t *testing.T) {
 	f := newFixture(t)
-	for _, path := range []string{"/api/stats", "/api/stats/traffic", "/api/stats/threats", "/api/stats/blocked-sources", "/api/logs", "/api/logs/export", "/api/logs/1", "/api/settings"} {
+	for _, path := range []string{"/api/stats", "/api/stats/traffic", "/api/stats/threats", "/api/stats/blocked-sources", "/api/stats/countries", "/api/logs", "/api/logs/export", "/api/logs/1", "/api/settings"} {
 		request(t, f, "GET", path, "", 401, nil)
 		request(t, f, "GET", path, "", 403, f.user)
 	}
@@ -113,6 +113,92 @@ func TestTelemetryAuthorization(t *testing.T) {
 	_, body = request(t, f, "GET", "/api/logs", "", 200, f.admin)
 	if page := decode[telemetry.LogPage](t, body); page.Items == nil || page.Total != 0 {
 		t.Fatalf("empty logs: %+v", page)
+	}
+}
+
+func TestCountryStats(t *testing.T) {
+	f := newFixture(t)
+	services := []domain.Service{{Name: "A", Hostname: "a.test", UpstreamURL: "http://127.0.0.1", Enabled: true}, {Name: "B", Hostname: "b.test", UpstreamURL: "http://127.0.0.1", Enabled: true}}
+	if err := f.db.Create(&services).Error; err != nil {
+		t.Fatal(err)
+	}
+	from := time.Date(2026, 1, 2, 10, 0, 0, 0, time.UTC)
+	to := from.Add(time.Hour)
+	code := func(s string) *string { return &s }
+	events := []domain.RequestLog{
+		{Timestamp: from, ServiceID: &services[0].ID, CountryCode: code("US"), Action: "allowed"},
+		{Timestamp: from.Add(time.Minute), ServiceID: &services[0].ID, CountryCode: code(" us "), Action: "blocked"},
+		{Timestamp: from, ServiceID: &services[0].ID, CountryCode: code("PL"), Action: "blocked"},
+		{Timestamp: from, ServiceID: &services[0].ID, CountryCode: nil, Action: "allowed"},
+		{Timestamp: from, ServiceID: &services[0].ID, CountryCode: code(""), Action: "blocked"},
+		{Timestamp: from, ServiceID: &services[0].ID, CountryCode: code("  "), Action: "allowed"},
+		{Timestamp: from, ServiceID: &services[1].ID, CountryCode: code("DE"), Action: "blocked"},
+		{Timestamp: from.Add(-time.Nanosecond), ServiceID: &services[0].ID, CountryCode: code("GB"), Action: "blocked"},
+		{Timestamp: to, ServiceID: &services[0].ID, CountryCode: code("FR"), Action: "blocked"},
+	}
+	if err := f.db.Create(&events).Error; err != nil {
+		t.Fatal(err)
+	}
+	query := "?from=" + url.QueryEscape(from.Format(time.RFC3339Nano)) + "&to=" + url.QueryEscape(to.Format(time.RFC3339Nano))
+	serviceQuery := query + fmt.Sprintf("&serviceId=%d", services[0].ID)
+	for _, mode := range []string{"", "&mode=all", "&mode=blocked"} {
+		response, body := request(t, f, "GET", "/api/stats/countries"+serviceQuery+mode, "", 200, f.admin)
+		if response.Header.Get("Cache-Control") != "no-store" {
+			t.Fatal("country stats can be cached")
+		}
+		result := decode[telemetry.CountriesResponse](t, body)
+		if !result.From.Equal(from) || !result.To.Equal(to) || len(result.Items) != 3 {
+			t.Fatalf("unexpected country stats: %+v", result)
+		}
+		if mode == "&mode=blocked" {
+			if result.Mode != "blocked" || result.TotalRequests != 3 || result.Items[0].CountryCode == nil || *result.Items[0].CountryCode != "PL" || *result.Items[1].CountryCode != "US" || result.Items[2].CountryCode != nil {
+				t.Fatalf("blocked country stats: %+v", result)
+			}
+			for _, item := range result.Items {
+				if item.Requests != 1 {
+					t.Fatalf("blocked counts: %+v", result.Items)
+				}
+			}
+		} else {
+			if result.Mode != "all" || result.TotalRequests != 6 || result.Items[0].CountryCode != nil || result.Items[0].Requests != 3 || *result.Items[1].CountryCode != "US" || result.Items[1].Requests != 2 || *result.Items[2].CountryCode != "PL" || result.Items[2].Requests != 1 {
+				t.Fatalf("all country stats: %+v", result)
+			}
+		}
+	}
+	_, body := request(t, f, "GET", "/api/stats/countries"+query+"&mode=blocked", "", 200, f.admin)
+	if result := decode[telemetry.CountriesResponse](t, body); result.TotalRequests != 4 || len(result.Items) != 4 || *result.Items[0].CountryCode != "DE" {
+		t.Fatalf("all services: %+v", result)
+	}
+	_, body = request(t, f, "GET", "/api/stats/countries"+query+"&serviceId=99999", "", 200, f.admin)
+	if result := decode[telemetry.CountriesResponse](t, body); result.TotalRequests != 0 || result.Items == nil || len(result.Items) != 0 {
+		t.Fatalf("empty country stats: %+v", result)
+	}
+	for _, invalid := range []string{"mode=allowed", "mode=ALL", "range=bad", "serviceId=0", "from=invalid&to=invalid", "from=2026-01-01T00:00:00Z", "from=2026-01-01T00:00:00Z&to=2026-01-02T00:00:00Z&range=24h"} {
+		request(t, f, "GET", "/api/stats/countries?"+invalid, "", 400, f.admin)
+	}
+	for _, period := range []string{"24h", "7d", "30d"} {
+		request(t, f, "GET", "/api/stats/countries?range="+period, "", 200, f.admin)
+	}
+}
+
+func TestCountryStatsReturnsEveryCountry(t *testing.T) {
+	f := newFixture(t)
+	codes := []string{"AU", "BR", "CA", "DE", "FR", "GB", "IN", "JP", "NL", "PL", "SG", "US"}
+	for _, code := range codes {
+		event := domain.RequestLog{Timestamp: time.Now().UTC(), CountryCode: &code, Action: "blocked"}
+		if err := f.service.Record(context.Background(), &event); err != nil {
+			t.Fatal(err)
+		}
+	}
+	_, body := request(t, f, "GET", "/api/stats/countries?mode=blocked", "", 200, f.admin)
+	result := decode[telemetry.CountriesResponse](t, body)
+	if len(result.Items) != len(codes) || result.TotalRequests != int64(len(codes)) {
+		t.Fatalf("country stats truncated: %+v", result)
+	}
+	for i, item := range result.Items {
+		if item.CountryCode == nil || *item.CountryCode != codes[i] || item.Requests != 1 {
+			t.Fatalf("country order or count: %+v", result.Items)
+		}
 	}
 }
 

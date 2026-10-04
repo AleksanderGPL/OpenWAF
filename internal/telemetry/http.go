@@ -40,6 +40,11 @@ type logIDParameters struct {
 	ID uint64 `path:"id" minimum:"1"`
 }
 
+type countryParameters struct {
+	statsParameters
+	Mode string `query:"mode" enum:"all,blocked" default:"all"`
+}
+
 func (h *Handler) Register(router *api.Router, requireAuth fiber.Handler) {
 	admin := func(c fiber.Ctx) error {
 		user, ok := c.Locals("authUser").(domain.User)
@@ -65,6 +70,7 @@ func (h *Handler) Register(router *api.Router, requireAuth fiber.Handler) {
 	} {
 		routes.Handle(http.MethodGet, route.path, api.Operation{ID: route.id, Summary: route.summary, Description: description, Parameters: statsParameters{}, Response: route.response, Session: true, Errors: []int{400, 401, 403}}, route.handler)
 	}
+	routes.Handle(http.MethodGet, "/countries", api.Operation{ID: "getCountries", Summary: "Get request counts grouped by country", Description: description + " Mode all (default) counts all requests; blocked counts only blocked requests. Returns every country with matching requests, ordered by request count descending then country code ascending, with unknown countries last in a tie. Country codes are uppercase ISO 3166-1 alpha-2; null and empty codes share a countryCode:null bucket. Total requests includes this unknown bucket. No countries with zero matching requests are returned.", Parameters: countryParameters{}, Response: CountriesResponse{}, Session: true, Errors: []int{400, 401, 403}}, h.countries)
 	logRoutes.Handle(http.MethodGet, "/", api.Operation{ID: "listRequestLogs", Summary: "List request logs", Description: description + " Search matches path, hostname, IP, reason, or exact request ID. Results ordered by timestamp and ID descending.", Parameters: logParameters{}, Response: LogPage{}, Session: true, Errors: []int{400, 401, 403}}, h.logs)
 	logRoutes.Handle(http.MethodGet, "/export", api.Operation{ID: "exportRequestLogs", Summary: "Export filtered request logs as CSV", Description: description + " Maximum 10000 matching rows; returns 413 when exceeded. Page and limit are ignored. Body bytes exclude HTTP headers and upgraded connection traffic.", Parameters: logParameters{}, Response: "", ResponseContentType: "text/csv", Session: true, Errors: []int{400, 401, 403, 413}}, h.export)
 	logRoutes.Handle(http.MethodGet, "/:id", api.Operation{ID: "getRequestLog", Summary: "Get request log details", Parameters: logIDParameters{}, Response: domain.RequestLog{}, Session: true, Errors: []int{400, 401, 403, 404}}, h.get)
@@ -188,6 +194,18 @@ func (h *Handler) sources(c fiber.Ctx) error {
 	}
 	return c.JSON(result)
 }
+func (h *Handler) countries(c fiber.Ctx) error {
+	f, err := parseFilter(c, false)
+	if err != nil {
+		return err
+	}
+	result, err := h.service.Countries(c.Context(), f, c.Query("mode"))
+	if err != nil {
+		return err
+	}
+	return c.JSON(result)
+}
+
 func (h *Handler) logs(c fiber.Ctx) error {
 	f, err := parseFilter(c, true)
 	if err != nil {

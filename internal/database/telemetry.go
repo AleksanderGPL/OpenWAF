@@ -128,6 +128,13 @@ func (s *Store) BlockedSources(ctx context.Context, filter telemetry.Filter) ([]
 	return result, nil
 }
 
+func (s *Store) Countries(ctx context.Context, filter telemetry.Filter) ([]telemetry.CountryRequests, error) {
+	rows := make([]telemetry.CountryRequests, 0)
+	const country = "NULLIF(UPPER(TRIM(country_code)), '')"
+	err := s.logQuery(ctx, filter).Select(country + " AS country_code, COUNT(*) AS requests").Group(country).Order("requests DESC, " + country + " IS NULL ASC, " + country + " ASC").Scan(&rows).Error
+	return rows, err
+}
+
 func (s *Store) Logs(ctx context.Context, filter telemetry.Filter) (telemetry.LogPage, error) {
 	page := telemetry.LogPage{Items: make([]domain.RequestLog, 0), Page: filter.Page, Limit: filter.Limit}
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {

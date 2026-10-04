@@ -40,6 +40,8 @@ frontend build-tag files are included.
 
 Autonomous investigations API: [docs/investigations-api.md](docs/investigations-api.md).
 
+Country statistics API: [docs/country-stats-api.md](docs/country-stats-api.md).
+
 Country lookup uses the free DB-IP Country Lite database. At startup, OpenWAF
 downloads the current monthly release to `data/dbip-country-lite.mmdb` if the
 cached database is missing or outdated. It checks hourly for updates and retries
