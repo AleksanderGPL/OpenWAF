@@ -113,9 +113,14 @@ async function refresh() {
           {{ t(`overview.logWritesFailed.${pluralForm(summary.collectionFailures)}`, { count: formatDashboardNumber(summary.collectionFailures) }) }}
         </template>
       </span>
-      <span v-if="summary">
-        {{ t('overview.logsKept', { days: summary.logRetentionDays }) }}
-      </span>
+      <div class="flex flex-wrap items-center gap-4">
+        <span v-if="summary">
+          {{ t('overview.logsKept', { days: summary.logRetentionDays }) }}
+        </span>
+        <a href="https://db-ip.com" target="_blank" rel="noopener noreferrer" class="hover:underline">
+          IP Geolocation by DB-IP
+        </a>
+      </div>
     </footer>
   </main>
 </template>

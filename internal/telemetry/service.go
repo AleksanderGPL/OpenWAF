@@ -103,13 +103,27 @@ type Store interface {
 
 type Service struct {
 	store     Store
+	geoip     CountryLookup
 	failures  atomic.Uint64
 	startedAt time.Time
 }
 
-func New(store Store) *Service { return &Service{store: store, startedAt: time.Now().UTC()} }
+type CountryLookup interface {
+	CountryCode(string) *string
+}
+
+func New(store Store, countries ...CountryLookup) *Service {
+	s := &Service{store: store, startedAt: time.Now().UTC()}
+	if len(countries) > 0 {
+		s.geoip = countries[0]
+	}
+	return s
+}
 
 func (s *Service) Record(ctx context.Context, event *domain.RequestLog) error {
+	if s.geoip != nil {
+		event.CountryCode = s.geoip.CountryCode(event.IP)
+	}
 	err := s.store.SaveRequest(context.WithoutCancel(ctx), event)
 	if err != nil {
 		s.failures.Add(1)

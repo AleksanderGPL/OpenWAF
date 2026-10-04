@@ -28,5 +28,10 @@ const ranges = computed(() => [
       />
     </div>
     <DashboardRequests :range="range" :refresh-token="0" :page-size="25" show-refresh />
+    <footer class="flex flex-wrap items-center justify-end gap-2 pb-2 text-xs text-dimmed">
+      <a href="https://db-ip.com" target="_blank" rel="noopener noreferrer" class="hover:underline">
+        IP Geolocation by DB-IP
+      </a>
+    </footer>
   </main>
 </template>

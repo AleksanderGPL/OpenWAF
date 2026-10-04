@@ -18,6 +18,7 @@ import (
 	"OpenWAF/internal/auth"
 	"OpenWAF/internal/clientip"
 	"OpenWAF/internal/database"
+	"OpenWAF/internal/geoip"
 	"OpenWAF/internal/investigation"
 	"OpenWAF/internal/proxy"
 	"OpenWAF/internal/rules"
@@ -72,7 +73,12 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	telemetryService := telemetry.New(store)
+	countries, err := geoip.Open(context.Background(), "data")
+	if err != nil {
+		log.Printf("GeoIP database unavailable or outdated; using cached data when available: %v", err)
+	}
+	defer countries.Close()
+	telemetryService := telemetry.New(store, countries)
 	assistantService, err := assistant.New(context.Background(), db, telemetryService)
 	if err != nil {
 		return err
@@ -114,6 +120,9 @@ func run() error {
 	defer proxyServer.Close()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	geoipDone := make(chan struct{})
+	go func() { defer close(geoipDone); countries.Run(ctx) }()
+	defer func() { stop(); <-geoipDone }()
 	investigationDone := make(chan struct{})
 	go func() { defer close(investigationDone); investigationService.Run(ctx) }()
 	defer func() { stop(); <-investigationDone }()
