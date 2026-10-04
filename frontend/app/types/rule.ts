@@ -45,3 +45,41 @@ export interface RuleFormValues {
   scope: string
   conditions: RuleConditionForm[]
 }
+
+export interface CatalogRule {
+  id: number
+  source: string
+  file?: string
+  message: string
+  tags: string[]
+}
+
+export interface RulePolicy {
+  serviceId?: number | null
+  mode: 'blocking' | 'detection' | 'off'
+  blockingParanoiaLevel: number
+  detectionParanoiaLevel: number
+  inboundThreshold: number
+  maxBodyBytes: number
+  rateLimitPerMinute: number
+  rateLimitAction: 'block' | 'log'
+  disabledRuleIds: number[]
+  updatedAt?: string
+}
+
+export interface PolicyView {
+  policy: RulePolicy
+  inherited: boolean
+  configuredPolicy: RulePolicy | null
+}
+
+export interface PolicyInput {
+  mode: RulePolicy['mode']
+  blockingParanoiaLevel: number
+  detectionParanoiaLevel: number
+  inboundThreshold: number
+  maxBodyBytes: number
+  rateLimitPerMinute: number
+  rateLimitAction: RulePolicy['rateLimitAction']
+  disabledRuleIds: number[]
+}

@@ -74,11 +74,11 @@ const navigationItems = computed<NavigationMenuItem[]>(() => [...sections.map(it
     <template #header="{ collapsed }">
       <UButton
         icon="i-lucide-shield-check"
-        color="primary"
-        variant="soft"
+        color="neutral"
+        variant="ghost"
         :label="collapsed ? undefined : 'OpenWAF'"
         :square="collapsed"
-        class="font-bold"
+        class="font-semibold"
         :class="collapsed ? 'mx-auto' : 'w-full justify-start'"
         :aria-label="t('nav.overviewAria')"
         @click="emit('navigate', 'overview')"

@@ -70,17 +70,17 @@ async function save(event: FormSubmitEvent<{ logRetentionDays: number }>) {
 </script>
 
 <template>
-  <main class="mx-auto flex w-full max-w-4xl flex-col gap-6">
-    <UCard>
-      <template #header>
-        <div class="flex items-center gap-3">
-          <UIcon name="i-lucide-database" class="size-5 text-primary" />
-          <div>
-            <h2 class="font-semibold text-highlighted">{{ t('settings.retentionTitle') }}</h2>
-            <p class="mt-1 text-sm text-muted">{{ t('settings.retentionDescription') }}</p>
-          </div>
+  <main class="mx-auto flex w-full max-w-4xl flex-col gap-4">
+    <section class="space-y-5 rounded-xl border border-default bg-default p-5 shadow-sm sm:p-6">
+      <header class="flex items-start gap-3">
+        <span class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <UIcon name="i-lucide-database" class="size-4" />
+        </span>
+        <div>
+          <h2 class="text-lg font-semibold text-highlighted">{{ t('settings.retentionTitle') }}</h2>
+          <p class="mt-1 text-sm text-muted">{{ t('settings.retentionDescription') }}</p>
         </div>
-      </template>
+      </header>
 
       <UAlert
         v-if="!isAdmin"
@@ -125,15 +125,15 @@ async function save(event: FormSubmitEvent<{ logRetentionDays: number }>) {
           </div>
         </div>
       </UForm>
-    </UCard>
+    </section>
 
-    <UCard>
-      <template #header>
-        <div class="flex items-center gap-3">
-          <UIcon name="i-lucide-palette" class="size-5 text-primary" />
-          <h2 class="font-semibold text-highlighted">{{ t('settings.appearance') }}</h2>
-        </div>
-      </template>
+    <section class="space-y-5 rounded-xl border border-default bg-default p-5 shadow-sm sm:p-6">
+      <header class="flex items-center gap-3">
+        <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <UIcon name="i-lucide-palette" class="size-4" />
+        </span>
+        <h2 class="text-lg font-semibold text-highlighted">{{ t('settings.appearance') }}</h2>
+      </header>
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p class="text-sm font-medium text-highlighted">{{ t('settings.theme') }}</p>
@@ -141,7 +141,6 @@ async function save(event: FormSubmitEvent<{ logRetentionDays: number }>) {
         </div>
         <UColorModeSelect :aria-label="t('settings.theme')" class="w-40" />
       </div>
-      <USeparator class="my-5" />
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p class="text-sm font-medium text-highlighted">{{ t('settings.language') }}</p>
@@ -149,15 +148,15 @@ async function save(event: FormSubmitEvent<{ logRetentionDays: number }>) {
         </div>
         <ULocaleSelect v-model="selectedLocale" :locales="localeOptions" class="w-40" :aria-label="t('settings.language')" />
       </div>
-    </UCard>
+    </section>
 
-    <UCard>
-      <template #header>
-        <div class="flex items-center gap-3">
-          <UIcon name="i-lucide-user-round" class="size-5 text-primary" />
-          <h2 class="font-semibold text-highlighted">{{ t('settings.account') }}</h2>
-        </div>
-      </template>
+    <section class="space-y-5 rounded-xl border border-default bg-default p-5 shadow-sm sm:p-6">
+      <header class="flex items-center gap-3">
+        <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <UIcon name="i-lucide-user-round" class="size-4" />
+        </span>
+        <h2 class="text-lg font-semibold text-highlighted">{{ t('settings.account') }}</h2>
+      </header>
       <dl class="grid gap-5 sm:grid-cols-3">
         <div>
           <dt class="text-xs text-muted">{{ t('settings.username') }}</dt>
@@ -172,6 +171,6 @@ async function save(event: FormSubmitEvent<{ logRetentionDays: number }>) {
           <dd class="mt-1"><UBadge :label="isAdmin ? t('common.administrator') : t('common.user')" color="neutral" variant="subtle" /></dd>
         </div>
       </dl>
-    </UCard>
+    </section>
   </main>
 </template>

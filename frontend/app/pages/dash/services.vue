@@ -181,151 +181,149 @@ const columns = computed<TableColumn<Service>[]>(() => [{
 
 <template>
   <main class="mx-auto flex w-full max-w-7xl flex-col gap-6">
-    <UCard :ui="{ body: 'p-0 sm:p-0' }">
-      <template #header>
-        <div class="flex flex-wrap items-start justify-between gap-4">
-          <div class="flex items-start gap-3">
-            <UIcon name="i-lucide-server" class="mt-0.5 size-5 text-primary" />
-            <div>
-              <div class="flex flex-wrap items-center gap-2">
-                <h2 class="font-semibold text-highlighted">{{ t('services.title') }}</h2>
-                <UBadge
-                  v-if="isAdmin && services"
-                  :label="t(`services.count.${pluralForm(services.length)}`, { count: services.length })"
-                  color="neutral"
-                  variant="subtle"
-                  size="sm"
-                />
-              </div>
-              <p class="mt-1 text-sm text-muted">
-                {{ t('services.description') }}
-              </p>
-            </div>
-          </div>
-          <div v-if="isAdmin && services" class="flex items-center gap-2">
-            <UTooltip :text="t('services.refresh')">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <div class="flex flex-wrap items-center gap-2">
+          <h2 class="text-lg font-semibold text-highlighted">{{ t('services.title') }}</h2>
+          <UBadge
+            v-if="isAdmin && services"
+            :label="t(`services.count.${pluralForm(services.length)}`, { count: services.length })"
+            color="neutral"
+            variant="subtle"
+            size="sm"
+          />
+        </div>
+        <p class="mt-1 text-sm text-muted">
+          {{ t('services.description') }}
+        </p>
+      </div>
+      <div v-if="isAdmin && services" class="flex items-center gap-2">
+        <UTooltip :text="t('services.refresh')">
+          <UButton
+            icon="i-lucide-refresh-cw"
+            color="neutral"
+            variant="outline"
+            :aria-label="t('services.refresh')"
+            @click="refresh()"
+          />
+        </UTooltip>
+        <UButton v-if="services.length > 0" :label="t('services.add')" icon="i-lucide-plus" @click="openCreate" />
+      </div>
+    </div>
+
+    <UAlert
+      v-if="!isAdmin"
+      :title="t('settings.adminRequired')"
+      :description="t('services.adminOnly')"
+      icon="i-lucide-lock"
+      color="neutral"
+      variant="subtle"
+    />
+    <div v-else-if="status === 'pending'" class="flex items-center gap-2 text-sm text-muted" role="status">
+      <UIcon name="i-lucide-loader-circle" class="size-4 animate-spin" />
+      {{ t('services.loading') }}
+    </div>
+    <div v-else-if="loadError || !services" class="space-y-4">
+      <UAlert :title="t('services.loadFailed')" :description="t('common.checkConnection')" color="error" variant="subtle" />
+      <UButton :label="t('common.tryAgain')" icon="i-lucide-refresh-cw" color="neutral" variant="outline" @click="refresh()" />
+    </div>
+    <UEmpty
+      v-else-if="services.length === 0"
+      icon="i-lucide-server"
+      :title="t('services.emptyTitle')"
+      :description="t('services.emptyDescription')"
+      class="rounded-xl border border-default bg-default py-10 shadow-sm"
+    >
+      <template #actions>
+        <UButton :label="t('services.add')" icon="i-lucide-plus" @click="openCreate" />
+      </template>
+    </UEmpty>
+    <div v-else class="overflow-hidden rounded-xl border border-default bg-default shadow-sm">
+      <div class="border-b border-default px-4 py-3 sm:px-5">
+        <UInput
+          v-model="search"
+          icon="i-lucide-search"
+          type="search"
+          :placeholder="t('services.searchPlaceholder')"
+          :aria-label="t('services.search')"
+          class="w-full sm:max-w-sm"
+        />
+      </div>
+      <UTable
+        :data="visibleServices"
+        :columns="columns"
+        :get-row-id="row => String(row.id)"
+        :empty="query ? t('services.emptySearch') : t('services.emptyTitle')"
+        :ui="{
+          th: 'bg-elevated text-xs font-semibold text-highlighted',
+          td: 'text-sm text-highlighted',
+          tr: 'border-b border-default last:border-b-0 hover:bg-elevated/50',
+          separator: 'bg-default'
+        }"
+      >
+        <template #name-cell="{ row }">
+          <p class="font-medium text-highlighted">{{ row.original.name }}</p>
+        </template>
+        <template #hostname-cell="{ row }">
+          <span class="font-mono text-xs text-toned">{{ row.original.hostname }}</span>
+        </template>
+        <template #upstreamUrl-cell="{ row }">
+          <UTooltip :text="row.original.upstreamUrl">
+            <span class="block max-w-72 truncate font-mono text-xs text-toned">{{ row.original.upstreamUrl }}</span>
+          </UTooltip>
+        </template>
+        <template #tls-cell="{ row }">
+          <UBadge
+            v-if="usesTls(row.original.upstreamUrl) && row.original.skipTlsVerify"
+            :label="t('services.verificationOff')"
+            color="warning"
+            variant="subtle"
+            size="sm"
+          />
+          <UBadge
+            v-else-if="usesTls(row.original.upstreamUrl)"
+            :label="t('services.verified')"
+            color="success"
+            variant="subtle"
+            size="sm"
+          />
+          <span v-else class="text-xs text-muted">{{ t('services.tlsUnused') }}</span>
+        </template>
+        <template #enabled-cell="{ row }">
+          <USwitch
+            :model-value="row.original.enabled"
+            :loading="togglingId === row.original.id"
+            :disabled="togglingId !== null"
+            :aria-label="t(row.original.enabled ? 'services.disable' : 'services.enable', { name: row.original.name })"
+            @update:model-value="setEnabled(row.original, $event)"
+          />
+        </template>
+        <template #actions-cell="{ row }">
+          <div class="flex justify-end gap-1">
+            <UTooltip :text="t('services.edit')">
               <UButton
-                icon="i-lucide-refresh-cw"
+                icon="i-lucide-pencil"
                 color="neutral"
-                variant="outline"
-                :aria-label="t('services.refresh')"
-                @click="refresh()"
+                variant="ghost"
+                size="sm"
+                :aria-label="t('services.editNamed', { name: row.original.name })"
+                @click="openEdit(row.original)"
               />
             </UTooltip>
-            <UButton v-if="services.length > 0" :label="t('services.add')" icon="i-lucide-plus" @click="openCreate" />
+            <UTooltip :text="t('services.delete')">
+              <UButton
+                icon="i-lucide-trash-2"
+                color="error"
+                variant="ghost"
+                size="sm"
+                :aria-label="t('services.deleteNamed', { name: row.original.name })"
+                @click="askDelete(row.original)"
+              />
+            </UTooltip>
           </div>
-        </div>
-      </template>
-
-      <div class="p-4 sm:p-6">
-        <UAlert
-          v-if="!isAdmin"
-          :title="t('settings.adminRequired')"
-          :description="t('services.adminOnly')"
-          icon="i-lucide-lock"
-          color="neutral"
-          variant="subtle"
-        />
-        <div v-else-if="status === 'pending'" class="flex items-center gap-2 text-sm text-muted" role="status">
-          <UIcon name="i-lucide-loader-circle" class="size-4 animate-spin" />
-          {{ t('services.loading') }}
-        </div>
-        <div v-else-if="loadError || !services" class="space-y-4">
-          <UAlert :title="t('services.loadFailed')" :description="t('common.checkConnection')" color="error" variant="subtle" />
-          <UButton :label="t('common.tryAgain')" icon="i-lucide-refresh-cw" color="neutral" variant="outline" @click="refresh()" />
-        </div>
-        <UEmpty
-          v-else-if="services.length === 0"
-          icon="i-lucide-server"
-          :title="t('services.emptyTitle')"
-          :description="t('services.emptyDescription')"
-          class="py-8"
-        >
-          <template #actions>
-            <UButton :label="t('services.add')" icon="i-lucide-plus" @click="openCreate" />
-          </template>
-        </UEmpty>
-        <div v-else class="space-y-4">
-          <UInput
-            v-model="search"
-            icon="i-lucide-search"
-            type="search"
-            :placeholder="t('services.searchPlaceholder')"
-            :aria-label="t('services.search')"
-            class="w-full sm:max-w-sm"
-          />
-          <UTable
-            :data="visibleServices"
-            :columns="columns"
-            :get-row-id="row => String(row.id)"
-            :empty="query ? t('services.emptySearch') : t('services.emptyTitle')"
-            :ui="{ th: 'bg-elevated/50 text-xs', td: 'text-sm', tr: 'hover:bg-elevated/30' }"
-          >
-            <template #name-cell="{ row }">
-              <p class="font-medium text-highlighted">{{ row.original.name }}</p>
-            </template>
-            <template #hostname-cell="{ row }">
-              <span class="font-mono text-xs text-muted">{{ row.original.hostname }}</span>
-            </template>
-            <template #upstreamUrl-cell="{ row }">
-              <UTooltip :text="row.original.upstreamUrl">
-                <span class="block max-w-72 truncate font-mono text-xs text-muted">{{ row.original.upstreamUrl }}</span>
-              </UTooltip>
-            </template>
-            <template #tls-cell="{ row }">
-              <UBadge
-                v-if="usesTls(row.original.upstreamUrl) && row.original.skipTlsVerify"
-                :label="t('services.verificationOff')"
-                color="warning"
-                variant="subtle"
-                size="sm"
-              />
-              <UBadge
-                v-else-if="usesTls(row.original.upstreamUrl)"
-                :label="t('services.verified')"
-                color="success"
-                variant="subtle"
-                size="sm"
-              />
-              <span v-else class="text-xs text-dimmed">{{ t('services.tlsUnused') }}</span>
-            </template>
-            <template #enabled-cell="{ row }">
-              <USwitch
-                :model-value="row.original.enabled"
-                :loading="togglingId === row.original.id"
-                :disabled="togglingId !== null"
-                :aria-label="t(row.original.enabled ? 'services.disable' : 'services.enable', { name: row.original.name })"
-                @update:model-value="setEnabled(row.original, $event)"
-              />
-            </template>
-            <template #actions-cell="{ row }">
-              <div class="flex justify-end gap-1">
-                <UTooltip :text="t('services.edit')">
-                  <UButton
-                    icon="i-lucide-pencil"
-                    color="neutral"
-                    variant="ghost"
-                    size="sm"
-                    :aria-label="t('services.editNamed', { name: row.original.name })"
-                    @click="openEdit(row.original)"
-                  />
-                </UTooltip>
-                <UTooltip :text="t('services.delete')">
-                  <UButton
-                    icon="i-lucide-trash-2"
-                    color="error"
-                    variant="ghost"
-                    size="sm"
-                    :aria-label="t('services.deleteNamed', { name: row.original.name })"
-                    @click="askDelete(row.original)"
-                  />
-                </UTooltip>
-              </div>
-            </template>
-          </UTable>
-        </div>
-      </div>
-    </UCard>
+        </template>
+      </UTable>
+    </div>
 
     <UModal
       v-model:open="editorOpen"

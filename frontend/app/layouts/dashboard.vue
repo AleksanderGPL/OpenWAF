@@ -48,7 +48,7 @@ async function navigate(section: DashboardSection) {
 <template>
   <UDashboardGroup v-if="user" unit="px" storage="local" storage-key="openwaf-dashboard">
     <DashboardSidebar v-model:open="sidebarOpen" :active-section="routedPage ?? activeSection" @navigate="navigate" />
-    <UDashboardPanel id="overview-panel" :ui="{ body: 'bg-muted/40' }">
+    <UDashboardPanel id="overview-panel" :ui="{ body: 'bg-muted' }">
       <template #header>
         <UDashboardNavbar :title="pageTitle">
           <template #leading>

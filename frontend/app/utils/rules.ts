@@ -19,6 +19,12 @@ export function isRuleAction(value: string): value is RuleAction {
   return (actions as readonly string[]).includes(value)
 }
 
+/** Matches backend validatePolicy: only known CRS detection / patch IDs may be disabled. */
+export function canDisableCatalogRule(id: number) {
+  if (id >= 911000 && id < 949000) return true
+  return id >= 1000000
+}
+
 function byteLength(value: string) {
   return new TextEncoder().encode(value).length
 }
