@@ -127,6 +127,8 @@ async function save(event: FormSubmitEvent<{ logRetentionDays: number }>) {
       </UForm>
     </section>
 
+    <DashboardAnomalySettings />
+
     <section class="space-y-5 rounded-xl border border-default bg-default p-5 shadow-sm sm:p-6">
       <header class="flex items-center gap-3">
         <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">

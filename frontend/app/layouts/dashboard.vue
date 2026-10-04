@@ -7,6 +7,9 @@ const auth = useAuthStore()
 const { user } = storeToRefs(auth)
 const route = useRoute()
 
+const { unread: investigationUnread, start: startInvestigationFeed, stop: stopInvestigationFeed } = useInvestigationFeed()
+onMounted(startInvestigationFeed)
+onBeforeUnmount(stopInvestigationFeed)
 const sidebarOpen = ref(false)
 const agentOpen = ref(false)
 const agentVisible = ref(true)
@@ -17,6 +20,7 @@ function toggleAgent() {
 }
 const activeSection = ref<DashboardSection>('overview')
 const routedPages = {
+  '/dash/investigations': 'investigations',
   '/dash/logs': 'logs',
   '/dash/settings': 'settings',
   '/dash/services': 'services',
@@ -24,6 +28,7 @@ const routedPages = {
 } as const
 const routedPage = computed(() => routedPages[route.path as keyof typeof routedPages] ?? null)
 const pageTitle = computed(() => {
+  if (routedPage.value === 'investigations') return t('nav.investigations')
   if (routedPage.value === 'logs') return t('nav.logs')
   if (routedPage.value === 'settings') return t('nav.settings')
   if (routedPage.value === 'services') return t('nav.services')
@@ -47,7 +52,7 @@ async function navigate(section: DashboardSection) {
 
 <template>
   <UDashboardGroup v-if="user" unit="px" storage="local" storage-key="openwaf-dashboard">
-    <DashboardSidebar v-model:open="sidebarOpen" :active-section="routedPage ?? activeSection" @navigate="navigate" />
+    <DashboardSidebar v-model:open="sidebarOpen" :active-section="routedPage ?? activeSection" :unread="investigationUnread" @navigate="navigate" />
     <UDashboardPanel id="overview-panel" :ui="{ body: 'bg-muted' }">
       <template #header>
         <UDashboardNavbar :title="pageTitle">

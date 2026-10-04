@@ -39,7 +39,16 @@ const apiErrorKeys: Record<string, string> = {
   'serviceId must be a positive integer': 'rules.validation.scope',
   'At most 500 custom rules are permitted': 'errors.ruleLimit',
   'A rule\'s scope cannot be changed; create a new rule': 'errors.ruleScopeLocked',
-  'Invalid rule ID': 'errors.invalidRuleId'
+  'Invalid rule ID': 'errors.invalidRuleId',
+  'An investigation is already active': 'investigations.alreadyActive',
+  'The result version is no longer available': 'investigations.versionGone',
+  'AI investigation is not configured': 'investigations.aiNotConfigured',
+  'Wait for the investigation to finish or cancel it before following up': 'investigations.followUpWaiting',
+  'Investigation context is too large': 'investigations.contextTooLarge',
+  'thresholds must be between 1 and 1000000': 'anomaly.validation.threshold',
+  'invalid anomaly settings': 'anomaly.invalid',
+  'global settings cannot be deleted': 'anomaly.globalLocked',
+  'page must be 1–10000 and limit 1–100': 'errors.pagination'
 }
 
 export function translateApiMessage(message: string) {
