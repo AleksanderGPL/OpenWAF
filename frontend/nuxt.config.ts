@@ -15,6 +15,7 @@ export default defineNuxtConfig({
   },
   modules: ['@nuxt/ui', 'nuxt-echarts', '@nuxt/icon', '@pinia/nuxt', '@nuxtjs/i18n'],
   i18n: {
+    experimental: { prerenderMessages: true },
     defaultLocale: 'en',
     strategy: 'no_prefix',
     langDir: 'locales',

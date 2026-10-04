@@ -93,6 +93,7 @@ SecAction "id:1001000,phase:1,pass,nolog,t:none,setvar:tx.blocking_paranoia_leve
 `, mode, p.MaxBodyBytes, p.BlockingParanoiaLevel, p.DetectionParanoiaLevel, p.InboundThreshold)
 	cfg := coraza.NewWAFConfig().WithRootFS(crs.FS).
 		WithDirectivesFromFile("@coraza.conf-recommended").
+		WithDirectivesFromFile("@crs-setup.conf.example").
 		WithDirectives(directives + patches).
 		WithDirectivesFromFile("@owasp_crs/*.conf")
 	if len(p.DisabledRuleIDs) > 0 {
